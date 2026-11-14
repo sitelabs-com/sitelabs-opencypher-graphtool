@@ -24,13 +24,13 @@ from .common import CORE_KEYS
 from .values import CPath
 from .models import _ValidationError, _to_store
 from .schema import Schema
-from .elements import _alive, _alive_mask, _edge_weights
+from .elements import _alive, _alive_mask, _relationship_weights
 
 # =========================================================================== #
 # openCypher: procedures (CALL ...)
 # =========================================================================== #
 def _cy_view(g: Graph, sc: Schema, mask, direction: str, types: tuple = ()):
-    """GraphView hiding dropped vertices (and edges not of `types`); direction out|in|both."""
+    """GraphView hiding dropped nodes (and relationships not of `types`); direction out|in|both."""
     import numpy as np
     from graph_tool import GraphView
     vf = g.new_vertex_property("bool")
@@ -39,7 +39,7 @@ def _cy_view(g: Graph, sc: Schema, mask, direction: str, types: tuple = ()):
     if types:
         ef = g.new_edge_property("bool")
         keep = np.zeros(len(ef.a), dtype=bool)
-        keep[sc.candidates(g, "edge", [("type", tuple(types), "any")])] = True
+        keep[sc.candidates(g, "relationship", [("type", tuple(types), "any")])] = True
         ef.a[:] = keep
         kw["efilt"] = ef
     return GraphView(g, vfilt=vf, directed=(False if direction == "both" else None),
@@ -47,9 +47,9 @@ def _cy_view(g: Graph, sc: Schema, mask, direction: str, types: tuple = ()):
 
 
 def _type_idx(g: Graph, sc: Schema, cfg: dict):
-    """Edge indices allowed by cfg["relationshipTypes"] (None = all edges)."""
+    """Edge indices allowed by cfg["relationshipTypes"] (None = all relationships)."""
     types = tuple(cfg.get("relationshipTypes") or ())
-    return set(sc.candidates(g, "edge", [("type", types, "any")]).tolist()) if types else None
+    return set(sc.candidates(g, "relationship", [("type", types, "any")]).tolist()) if types else None
 
 
 def _dir_arg(v, default="out") -> str:
@@ -69,17 +69,17 @@ def _cfg(c: Any) -> dict:
 
 
 def _proc_labels(run, *a):
-    return ["label"], [{"label": n} for n in run.sc.reg("vertex", "label").all_names()]
+    return ["label"], [{"label": n} for n in run.sc.reg("node", "label").all_names()]
 
 
 def _proc_reltypes(run, *a):
-    return ["relationshipType"], [{"relationshipType": n} for n in run.sc.reg("edge", "type").all_names()]
+    return ["relationshipType"], [{"relationshipType": n} for n in run.sc.reg("relationship", "type").all_names()]
 
 
 def _proc_propkeys(run, *a):
     keys: list = []
     if run.store is not None:
-        for kind in ("vertex", "edge"):
+        for kind in ("node", "relationship"):
             for tn in run.sc.reg(kind, "type").all_names():
                 try:
                     for k in run.store.columns(kind, tn):
@@ -98,7 +98,7 @@ def _proc_pagerank(run, config=None):
     mask = _alive_mask(g)
     view = _cy_view(g, sc, mask, _dir_arg(c.get("direction")), tuple(c.get("relationshipTypes") or ()))
     wkey = c.get("weightProperty")
-    w = _edge_weights(g, wkey, "gt.pageRank", False, _type_idx(g, sc, c)) if wkey else None
+    w = _relationship_weights(g, wkey, "gt.pageRank", False, _type_idx(g, sc, c)) if wkey else None
     r = pagerank(view, damping=c.get("dampingFactor", 0.85), weight=w,
                  epsilon=c.get("tolerance", 1e-6), max_iter=c.get("maxIterations"))
     arr = np.asarray(r.a)
@@ -132,7 +132,7 @@ def _proc_peer(run, config=None):
     e = np.asarray(g.get_edges(), dtype=np.int64).reshape(-1, 2)
     if c.get("relationshipTypes") and len(e):
         types = tuple(c["relationshipTypes"])
-        okidx = set(sc.candidates(g, "edge", [("type", types, "any")]).tolist())
+        okidx = set(sc.candidates(g, "relationship", [("type", types, "any")]).tolist())
         keep = np.array([int(g.edge_index[ed]) in okidx for ed in g.edges()], dtype=bool)
         e = e[keep] if len(keep) == len(e) else e
     if len(e):
@@ -172,7 +172,7 @@ def _proc_shortest(run, source, target, config=None):
     mask = _alive_mask(g)
     view = _cy_view(g, sc, mask, _dir_arg(c.get("direction")), tuple(c.get("relationshipTypes") or ()))
     wkey = c.get("weightProperty")
-    w = _edge_weights(g, wkey, "gt.shortestPath", True, _type_idx(g, sc, c)) if wkey else None
+    w = _relationship_weights(g, wkey, "gt.shortestPath", True, _type_idx(g, sc, c)) if wkey else None
     if int(source) == int(target):
         return ["path", "totalCost"], [{"path": CPath((source,), ()), "totalCost": 0.0}]
     vl, el = shortest_path(view, view.vertex(int(source)), view.vertex(int(target)), weights=w)
@@ -180,21 +180,21 @@ def _proc_shortest(run, source, target, config=None):
         return ["path", "totalCost"], []
     cost = float(sum(w[e] for e in el)) if w is not None else float(len(el))
     return ["path", "totalCost"], [{"path": CPath(tuple(g.vertex(int(v)) for v in vl),
-                                                  tuple(_base_edge(g, view, e) for e in el)),
+                                                  tuple(_base_relationship(g, view, e) for e in el)),
                                     "totalCost": cost}]
 
 
-def _base_edge(g: Graph, view, e):
-    """The edge of `g` that the GraphView's edge `e` stands for. A view's edge descriptors are only
+def _base_relationship(g: Graph, view, e):
+    """The relationship of `g` that the GraphView's relationship `e` stands for. A view's relationship descriptors are only
     valid inside the view, and an undirected or reversed view may report the ends swapped, so the
-    edge is found again in `g` by its index, among the edges between its two ends."""
+    relationship is found again in `g` by its index, among the relationships between its two ends."""
     idx = int(view.edge_index[e])
     s, t = int(e.source()), int(e.target())
     for a, b in ((s, t), (t, s)):
         for ge in g.edge(a, b, all_edges=True):
             if int(g.edge_index[ge]) == idx:
                 return ge
-    raise OpenCypherError(f"gt.shortestPath: edge {idx} of the path is not in the graph")
+    raise OpenCypherError(f"gt.shortestPath: relationship {idx} of the path is not in the graph")
 
 
 VECTOR_SEARCH_MAX_K = 1000   # Cassandra's limit for ORDER BY ... ANN OF
@@ -217,9 +217,9 @@ def _proc_vector_search(run, type_name=None, field=None, vector=None, k=None, fi
         raise OpenCypherError(f"vector.search: k must be an integer from 1 to {VECTOR_SEARCH_MAX_K}, got {k!r}")
     store = run.store
     models = getattr(store, "models", None)
-    info = models._by.get(("vertex", type_name)) if models is not None else None
+    info = models._by.get(("node", type_name)) if models is not None else None
     if info is None:
-        raise OpenCypherError(f"vector.search: no vertex model {type_name!r} (vector search needs the data model)")
+        raise OpenCypherError(f"vector.search: no node model {type_name!r} (vector search needs the data model)")
     f = info.fields.get(field)
     if f is None or f.dim is None:
         raise OpenCypherError(f"vector.search: {info.cls.__name__}.{field} is not a Vector field")
@@ -244,14 +244,14 @@ def _proc_vector_search(run, type_name=None, field=None, vector=None, k=None, fi
     if store.has_pending():
         store.flush()                                  # the search only sees flushed rows
     want = min(VECTOR_SEARCH_MAX_K, k * max(1, run.eng.vector_oversample or 1))
-    hits = store.vector_search("vertex", type_name, field, [float(x) for x in vec], want, conds, f.similarity)
+    hits = store.vector_search("node", type_name, field, [float(x) for x in vec], want, conds, f.similarity)
     hits.sort(key=lambda h: -h[1])
     g, sc = run.g, run.sc
-    sc.prefetch_ids("vertex", [i for i, _ in hits])
+    sc.prefetch_ids("node", [i for i, _ in hits])
     rows = []
     for id_, score in hits:
         try:
-            v = sc.vertex_by_id(g, id_)
+            v = sc.node_by_id(g, id_)
         except ValueError:
             continue
         if v is not None and _alive(g, v) and sc.type_name(g, v) == type_name:

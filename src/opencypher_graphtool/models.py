@@ -67,7 +67,7 @@ class _VectorSpec:
 class Vector:
     """`Vector[384]`: a list of exactly 384 floats, stored as Cassandra `vector<float, 384>`.
 
-        class Document(VertexModel):
+        class Document(NodeModel):
             embedding: Vector[384] | None = VectorField(similarity="cosine")
 
     Vectors live only in the property store (never in graph-tool's memory). Search them with
@@ -245,23 +245,23 @@ if _BaseModel is not None:
             super().__pydantic_init_subclass__()
             cls.__gt_kw__ = kw
 
-    class VertexModel(_GraphModel):
-        """Describes one vertex type = one Cassandra table. Configure with an inner `class Meta:`
-        (type, labels, table) or class keywords: `class Person(VertexModel, table="people")`."""
+    class NodeModel(_GraphModel):
+        """Describes one node type = one Cassandra table. Configure with an inner `class Meta:`
+        (type, labels, table) or class keywords: `class Person(NodeModel, table="people")`."""
 
-    class EdgeModel(_GraphModel):
-        """Describes one edge type = one Cassandra table (label = type)."""
+    class RelationshipModel(_GraphModel):
+        """Describes one relationship type = one Cassandra table (label = type)."""
 else:                                                         # pragma: no cover
     def Field(*args: Any, **kw: Any) -> Any:
         raise ImportError("pydantic is required for Models (pip install pydantic)")
 
     VectorField = Field
 
-    class VertexModel:                                        # type: ignore[no-redef]
+    class NodeModel:                                        # type: ignore[no-redef]
         def __init_subclass__(cls, **kw):
             raise ImportError("pydantic is required for Models (pip install pydantic)")
 
-    class EdgeModel(VertexModel):                             # type: ignore[no-redef]
+    class RelationshipModel(NodeModel):                             # type: ignore[no-redef]
         pass
 
 
@@ -273,7 +273,7 @@ def _snake(name: str) -> str:
 class _ModelInfo:
     def __init__(self, cls: type):
         self.cls = cls
-        self.kind = "vertex" if issubclass(cls, VertexModel) else "edge"
+        self.kind = "node" if issubclass(cls, NodeModel) else "relationship"
         own = cls.__dict__.get("Meta")
         kw = cls.__dict__.get("__gt_kw__", {})
 
@@ -282,8 +282,8 @@ class _ModelInfo:
         self.type = pick("type", cls.__name__)
         self.labels = list(pick("labels", []))
         self.table = pick("table", _snake(self.type))
-        # Optional, descriptive only (not enforced): a vertex type's natural key, and the vertex
-        # types an edge type connects. They shape the example import files (example_imports.py).
+        # Optional, descriptive only (not enforced): a node type's natural key, and the node
+        # types a relationship type connects. They shape the example import files (example_imports.py).
         self.key = pick("key", None)
         self.source, self.target = pick("source", None), pick("target", None)
         self.fields: dict[str, _FieldInfo] = {}
@@ -291,21 +291,21 @@ class _ModelInfo:
             if n in CORE_KEYS:
                 raise ValueError(f"{cls.__name__}.{n}: {n!r} is reserved (id/label/type are served by graph-tool)")
             self.fields[n] = _FieldInfo(n, f)
-        if self.kind == "edge" and self.labels:
-            raise ValueError(f"{cls.__name__}: an edge has exactly one type and no labels")
+        if self.kind == "relationship" and self.labels:
+            raise ValueError(f"{cls.__name__}: a relationship has exactly one type and no labels")
         if self.key is not None and self.key not in self.fields:
             raise ValueError(f"{cls.__name__}: Meta.key {self.key!r} is not one of its fields")
-        if self.kind == "vertex" and (self.source or self.target):
-            raise ValueError(f"{cls.__name__}: Meta.source / Meta.target are for edge types")
+        if self.kind == "node" and (self.source or self.target):
+            raise ValueError(f"{cls.__name__}: Meta.source / Meta.target are for relationship types")
 
 
 class Models:
     """Pydantic models as the single source of truth.
 
-        class Person(VertexModel):
+        class Person(NodeModel):
             name: str = Field(index=True)          # -> Cassandra secondary index
             age: int | None = None
-        class Knows(EdgeModel):
+        class Knows(RelationshipModel):
             since: int | None = None
 
         cy = opencypher(graph, store, models=Models([Person, Knows]))
@@ -322,8 +322,8 @@ class Models:
         self._by: dict[tuple, _ModelInfo] = {}
         tables: dict[str, str] = {}
         for cls in models:
-            if not (isinstance(cls, type) and issubclass(cls, (VertexModel, EdgeModel))):
-                raise TypeError(f"{cls!r} is not a VertexModel / EdgeModel subclass")
+            if not (isinstance(cls, type) and issubclass(cls, (NodeModel, RelationshipModel))):
+                raise TypeError(f"{cls!r} is not a NodeModel / RelationshipModel subclass")
             info = _ModelInfo(cls)
             key = (info.kind, info.type)
             if key in self._by:
@@ -332,11 +332,11 @@ class Models:
                 raise ValueError(f"table {info.table!r} is used by both {tables[info.table]} and {cls.__name__}")
             tables[info.table] = cls.__name__
             self._by[key] = info
-        vertex_types = set(self.type_names("vertex"))
+        node_types = set(self.type_names("node"))
         for info in self._by.values():
             for end in (info.source, info.target):
-                if end is not None and end not in vertex_types:
-                    raise ValueError(f"{info.cls.__name__}: Meta.source / target {end!r} is not a vertex type")
+                if end is not None and end not in node_types:
+                    raise ValueError(f"{info.cls.__name__}: Meta.source / target {end!r} is not a node type")
 
     # -- lookups ---------------------------------------------------------------------- #
     def type_names(self, kind: str) -> list[str]:
@@ -355,9 +355,9 @@ class Models:
         return info.table
 
     def pick_type(self, labels: Iterable[str]) -> "str | None":
-        """The vertex type for a set of labels: the first one that has a model."""
+        """The node type for a set of labels: the first one that has a model."""
         for l in labels:
-            if ("vertex", l) in self._by:
+            if ("node", l) in self._by:
                 return l
         return None
 
@@ -371,12 +371,12 @@ class Models:
         return sc
 
     def register_into(self, schema: Schema) -> None:
-        vt = self.type_names("vertex")
+        vt = self.type_names("node")
         labels = list(vt)
         for i in self._by.values():
             labels += [l for l in i.labels if l not in labels]
-        for kind, what, names in (("vertex", "type", vt), ("vertex", "label", labels),
-                                  ("edge", "type", self.type_names("edge"))):
+        for kind, what, names in (("node", "type", vt), ("node", "label", labels),
+                                  ("relationship", "type", self.type_names("relationship"))):
             for n in names:
                 schema.reg(kind, what).register(n)
 

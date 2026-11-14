@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opencypher-graphtool"
-version = "0.1.7"
+version = "0.2.0"
 description = "An openCypher query engine for graph-tool, with pluggable property stores (in memory, Apache Cassandra)"
 readme = "README.md"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ authors = [{ name = "Sitelabs.com" }]
 requires-python = ">=3.12"
 # graph-tool is not on PyPI: install it from conda-forge (environment.yml) before this package.
 dependencies = [
-    "pydantic>=2.14",       # the data model (Models, VertexModel, EdgeModel, Field)
+    "pydantic>=2.14",       # the data model (Models, NodeModel, RelationshipModel, Field)
 ]
 
 [project.optional-dependencies]

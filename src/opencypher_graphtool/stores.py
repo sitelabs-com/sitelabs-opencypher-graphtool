@@ -37,14 +37,14 @@ class PropertyStore:
       fetch_rows(kind, type_name, ids)          -> {id: {column: value}}
       search(kind, type_name, key, values)      -> [(id, row)] or None if the
                                                    column isn't searchable
-    `kind` is "vertex" or "edge".
+    `kind` is "node" or "relationship".
     """
 
-    def __init__(self, vertex_types: Iterable[str] | None = None,
-                 edge_types: Iterable[str] | None = None, max_cache: int = 200_000):
+    def __init__(self, node_types: Iterable[str] | None = None,
+                 relationship_types: Iterable[str] | None = None, max_cache: int = 200_000):
         self._types: dict[str, set | None] = {
-            "vertex": set(vertex_types) if vertex_types else None,
-            "edge": set(edge_types) if edge_types else None,
+            "node": set(node_types) if node_types else None,
+            "relationship": set(relationship_types) if relationship_types else None,
         }
         self._cache: dict[tuple, dict] = {}
         self.max_cache = max_cache
@@ -71,8 +71,8 @@ class PropertyStore:
         """Adopt the pydantic models as the schema: types come from them (and, for Cassandra,
         table names too); values are validated when set and rows at commit."""
         self.models = models
-        self._types = {"vertex": set(models.type_names("vertex")),
-                       "edge": set(models.type_names("edge"))}
+        self._types = {"node": set(models.type_names("node")),
+                       "relationship": set(models.type_names("relationship"))}
 
     def migrate(self, models: "Models", reverse: bool = False, allow_blocked: bool = False):
         """Create/alter the backing tables for `models`. No-op unless the store has tables to manage."""
@@ -88,7 +88,7 @@ class PropertyStore:
     def bind(self, g: Graph) -> None:
         """Learn which types exist (from the Schema's type registries)."""
         sc = _schema(g)
-        for kind in ("vertex", "edge"):
+        for kind in ("node", "relationship"):
             if self._types[kind] is None:
                 self._types[kind] = set(sc.reg(kind, "type").all_names())
 
@@ -178,7 +178,7 @@ class PropertyStore:
             is_v = _is_v(el)
             if not (is_v or _is_e(el)):
                 continue
-            kind = "vertex" if is_v else "edge"
+            kind = "node" if is_v else "relationship"
             tn = _prop(g, el, "type")
             if not tn:
                 continue

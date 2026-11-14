@@ -27,7 +27,7 @@ from .ids import stable_id
 from .ast_nodes import Call, Create, Delete, Match, Merge, PPart, Proj, Remove, SetC, Single, Unwind, _has_agg
 from .values import CPath, _ekey, _hk, _rank
 from .schema import Schema
-from .elements import _all_keys, _create_edge, _create_vertex, _prefetch_objs, _set_props, _undo_edge_delete, _undo_vertex_delete
+from .elements import _all_keys, _create_relationship, _create_node, _prefetch_objs, _set_props, _undo_relationship_delete, _undo_node_delete
 from .execution import _HID
 from .matching import _Run as _RunBase
 
@@ -232,9 +232,9 @@ class _Run(_RunBase):                                 # the runner, continued: c
             props = self._vals(node.props, row)
             id_ = props.pop("id", None)
             if id_ is None and merge:
-                id_ = _merge_id(self.eng, "vertex", props, *sorted(node.labels))
+                id_ = _merge_id(self.eng, "node", props, *sorted(node.labels))
             try:
-                v = _create_vertex(g, tuple(node.labels), None, id_)
+                v = _create_node(g, tuple(node.labels), None, id_)
             except (KeyError, ValueError) as ex:
                 raise OpenCypherError(_msg(ex)) from None
             self.stats["nodes_created"] += 1
@@ -259,10 +259,10 @@ class _Run(_RunBase):                                 # the runner, continued: c
             props = self._vals(rel.props, row)
             id_ = props.pop("id", None)
             if id_ is None and merge:
-                id_ = _merge_id(self.eng, "edge", props, rel.types[0],
+                id_ = _merge_id(self.eng, "relationship", props, rel.types[0],
                                 self.sc.get_id(g, a), self.sc.get_id(g, b))
             try:
-                e = _create_edge(g, a, b, rel.types[0], None, id_)
+                e = _create_relationship(g, a, b, rel.types[0], None, id_)
             except (KeyError, ValueError) as ex:
                 raise OpenCypherError(_msg(ex)) from None
             self.stats["relationships_created"] += 1
@@ -321,7 +321,7 @@ class _Run(_RunBase):                                 # the runner, continued: c
             raise OpenCypherError("labels can only be changed on nodes")
         g, sc = self.g, self.sc
         _check_write(g)
-        reg = sc.reg("vertex", "label")
+        reg = sc.reg("node", "label")
         m = 0
         for l in labels:
             m |= reg.resolve(l) if add else reg.lookup(l)
@@ -385,7 +385,7 @@ class _Run(_RunBase):                                 # the runner, continued: c
         rows = _flatten(chunks)
         g = self.g
         verts: dict[int, Vertex] = {}
-        edges: dict[int, Edge] = {}
+        relationships: dict[int, Edge] = {}
 
         def collect(x):
             if x is None:
@@ -393,7 +393,7 @@ class _Run(_RunBase):                                 # the runner, continued: c
             if isinstance(x, Vertex):
                 verts[int(x)] = x
             elif isinstance(x, Edge):
-                edges[_ekey(g, x)] = x
+                relationships[_ekey(g, x)] = x
             elif isinstance(x, CPath):
                 for n in x.nodes: collect(n)
                 for e in x.rels: collect(e)
@@ -407,16 +407,16 @@ class _Run(_RunBase):                                 # the runner, continued: c
         if c.detach:
             for v in verts.values():
                 for e in v.all_edges():
-                    edges[_ekey(g, e)] = e
+                    relationships[_ekey(g, e)] = e
         else:
             for v in verts.values():
-                if any(_ekey(g, e) not in edges for e in v.all_edges()):
+                if any(_ekey(g, e) not in relationships for e in v.all_edges()):
                     raise OpenCypherError("Cannot delete node, because it still has relationships. "
                                       "To delete this node, you must first delete its relationships, "
                                       "or use DETACH DELETE")
-        self.stats["relationships_deleted"] += len(edges)
+        self.stats["relationships_deleted"] += len(relationships)
         self.stats["nodes_deleted"] += len(verts)
-        _delete_elements(g, self.sc, self.store, verts, edges)
+        _delete_elements(g, self.sc, self.store, verts, relationships)
         for i in range(0, len(rows), 512):
             yield rows[i:i + 512]
 
@@ -504,33 +504,38 @@ class _Run(_RunBase):                                 # the runner, continued: c
         return [{c: self.out(r.get(c), cache) for c in cols} for r in rows]
 
 
-def _delete_elements(g: Graph, sc: Schema, store, verts: dict, edges: dict) -> None:
-    """Edges are removed (their rows deleted); vertices are TOMBSTONED, never removed,
-    because graph-tool renumbers vertices on removal and that would orphan stored ids."""
+def _delete_elements(g: Graph, sc: Schema, store, verts: dict, relationships: dict) -> None:
+    """Relationships are removed (their rows deleted); nodes are TOMBSTONED, never removed,
+    because graph-tool renumbers nodes on removal and that would orphan stored ids."""
     _check_write(g)
     t = _txn_of(g)
-    for e in edges.values():
+    for e in relationships.values():
         tn, eid = sc.type_name(g, e), sc.get_id(g, e)
         if store is not None and tn and eid:
-            store.stage_delete("edge", tn, eid)
+            store.stage_delete("relationship", tn, eid)
         if t is not None and eid:
             t.undo.append(lambda args=(g, sc, e.source(), e.target(), sc.label_mask(g, e),
-                                       sc.type_mask(g, e), eid): _undo_edge_delete(*args))
+                                       sc.type_mask(g, e), eid): _undo_relationship_delete(*args))
             t.redo.append(["e-", eid])
-        sc.retire(g, "edge", e)
+        sc.retire(g, "relationship", e)
         g.remove_edge(e)
     if verts and "_dropped" not in g.vp:
         g.vp["_dropped"] = g.new_vertex_property("bool")
     for v in verts.values():
         tn, uid = sc.type_name(g, v), sc.get_id(g, v)
         if store is not None and tn and uid:
-            store.stage_delete("vertex", tn, uid)
+            store.stage_delete("node", tn, uid)
         if t is not None and uid:
             t.undo.append(lambda args=(g, sc, v, sc.label_mask(g, v), sc.type_mask(g, v), uid):
-                          _undo_vertex_delete(*args))
+                          _undo_node_delete(*args))
             t.redo.append(["v-", uid])
-        sc.retire(g, "vertex", v)
+        sc.retire(g, "node", v)
         g.vp["_dropped"][v] = True
+
+
+# The words an element's id is derived from (MERGE ids, file-import ids). Older versions called
+# them vertex and edge; they stay, so every id a MERGE or an import made before is made again.
+_ID_KIND = {"node": "vertex", "relationship": "edge"}
 
 
 def _merge_id(eng: "OpenCypher", kind: str, props: dict, *ident: Any) -> "str | None":
@@ -540,8 +545,8 @@ def _merge_id(eng: "OpenCypher", kind: str, props: dict, *ident: Any) -> "str | 
     if not eng.stable_merge_ids:
         return None
     sig = repr(sorted((k, repr(v)) for k, v in props.items() if v is not None))
-    sid = stable_id("opencypher-merge", kind, *ident, sig)
-    idx = eng.schema._vidx if kind == "vertex" else eng.schema._eidx
+    sid = stable_id("opencypher-merge", _ID_KIND[kind], *ident, sig)
+    idx = eng.schema._vidx if kind == "node" else eng.schema._eidx
     return None if sid in idx else sid
 
 

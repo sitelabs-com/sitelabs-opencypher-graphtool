@@ -17,12 +17,12 @@ import asyncio, threading
 from graph_tool import Graph
 from opencypher_graphtool import opencypher, Schema, InMemoryStore, LockUpgradeError, LockTimeout
 
-# --- setup: label/type bit maps, one table per vertex/edge type, a property store -------
-schema = Schema(vertex_labels=["Person", "Movie"], vertex_types=["Person", "Movie"], edge_types=["KNOWS", "ACTED_IN"])
-tables = {("vertex", "Person"): {}, ("vertex", "Movie"): {},
-          ("edge", "KNOWS"): {}, ("edge", "ACTED_IN"): {}}
-store = InMemoryStore(tables, indexed={("vertex", "Person"): {"name"}, ("vertex", "Movie"): {"title"},
-                                       ("edge", "KNOWS"): set(), ("edge", "ACTED_IN"): set()})
+# --- setup: label/type bit maps, one table per node/relationship type, a property store -------
+schema = Schema(node_labels=["Person", "Movie"], node_types=["Person", "Movie"], relationship_types=["KNOWS", "ACTED_IN"])
+tables = {("node", "Person"): {}, ("node", "Movie"): {},
+          ("relationship", "KNOWS"): {}, ("relationship", "ACTED_IN"): {}}
+store = InMemoryStore(tables, indexed={("node", "Person"): {"name"}, ("node", "Movie"): {"title"},
+                                       ("relationship", "KNOWS"): set(), ("relationship", "ACTED_IN"): set()})
 cy = opencypher(Graph(directed=True), store, schema)     # for Cassandra: opencypher(Graph(), CassandraStore(session, "ks"), schema)
 
 # --- 1. writes and reads (locking is automatic) ------------------------------------------
@@ -87,7 +87,7 @@ print(cy.run("MATCH (p:Person {name:'Ghost'}) RETURN count(*)").value())     # 0
 
 print(cy.verify())                              # compares ids in graph-tool with every table
 stray = "11111111-1111-4111-8111-111111111111"
-tables[("vertex", "Movie")][stray] = {"id": stray}                           # simulate drift
+tables[("node", "Movie")][stray] = {"id": stray}                           # simulate drift
 print(cy.verify().orphan_rows)
 fix = cy.repair(missing="recreate", orphans="delete")   # policies: report | recreate | tombstone / delete
 print(fix["orphan_rows_deleted"], fix["after"].ok)
@@ -97,33 +97,33 @@ cy.run("MERGE (:Person {name: 'Zoe'})")
 
 # --- 8. fast startup: keep the id -> index map in a Cassandra table instead of building it ---
 #   store = CassandraStore(session, "ks", table_namer=...)
-#   store.create_reverse_table("uuid")                  # once; table name: reverse_vertex_ids
+#   store.create_reverse_table("uuid")                  # once; table name: reverse_node_ids
 #   cy = opencypher(graph, store, schema, id_index="store") # startup reads ONE row, no graph scan
 #   cy.verify()                                         # also checks the reverse table
 #   cy.repair(reverse="rebuild")                        # rewrite it from graph-tool if it drifted
 # (graph-tool remains the source of truth: every lookup is validated against its own id map)
 demo_graph = Graph(directed=True)
-demo_store = InMemoryStore({("vertex", "Person"): {}, ("vertex", "Movie"): {},
-                            ("edge", "KNOWS"): {}, ("edge", "ACTED_IN"): {}})
-fast_schema = Schema(vertex_labels=["Person", "Movie"], vertex_types=["Person", "Movie"], edge_types=["KNOWS", "ACTED_IN"])   # one Schema per graph
+demo_store = InMemoryStore({("node", "Person"): {}, ("node", "Movie"): {},
+                            ("relationship", "KNOWS"): {}, ("relationship", "ACTED_IN"): {}})
+fast_schema = Schema(node_labels=["Person", "Movie"], node_types=["Person", "Movie"], relationship_types=["KNOWS", "ACTED_IN"])   # one Schema per graph
 fast = opencypher(demo_graph, demo_store, fast_schema, id_index="store")
 fast.run("CREATE (:Person {name:'Ann'})-[:KNOWS]->(:Person {name:'Bob'})")
-print(len(demo_store.tables[("reverse", "ids")]), "reverse rows (2 vertices + 1 edge + marker)")
+print(len(demo_store.tables[("reverse", "ids")]), "reverse rows (2 nodes + 1 relationship + marker)")
 
 # --- 9. pydantic models as the single source of truth ----------------------------------------
-from opencypher_graphtool import Models, VertexModel, EdgeModel, Field, ConstraintError
+from opencypher_graphtool import Models, NodeModel, RelationshipModel, Field, ConstraintError
 
-class Person2(VertexModel):                       # one model = one type = one table
+class Person2(NodeModel):                       # one model = one type = one table
     class Meta:
         type = "Person"
     name: str = Field(index=True)                 # -> Cassandra secondary index
     age: int | None = Field(default=None, ge=0)
     tags: list[str] = Field(default_factory=list)
 
-class Knows2(EdgeModel):
+class Knows2(RelationshipModel):
     class Meta:
         type = "KNOWS"
-    since: int = Field(ge=1900)                   # required on every KNOWS edge
+    since: int = Field(ge=1900)                   # required on every KNOWS relationship
 
 models = Models([Person2, Knows2])
 print(models.ddl("mykeyspace")[:2])               # the CREATE TABLE / CREATE INDEX it will run

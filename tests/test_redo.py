@@ -25,8 +25,8 @@ ET = ["KNOWS", "LIVES_IN"]
 def make(graph=None, store=None):
     g = graph if graph is not None else Graph()
     store = store if store is not None else InMemoryStore(
-        {("vertex", "Person"): {}, ("vertex", "City"): {}, ("edge", "KNOWS"): {}, ("edge", "LIVES_IN"): {}})
-    cy = opencypher(g, store, Schema(vertex_types=VT, edge_types=ET))
+        {("node", "Person"): {}, ("node", "City"): {}, ("relationship", "KNOWS"): {}, ("relationship", "LIVES_IN"): {}})
+    cy = opencypher(g, store, Schema(node_types=VT, relationship_types=ET))
     return cy, store
 
 
@@ -72,7 +72,7 @@ def test_a_failing_on_commit_rolls_the_query_back():
         cy.run("CREATE (:Person {name: 'Ann'})")
     cy.on_commit = None
     assert cy.run("MATCH (n) RETURN count(n) AS c").value() == 0
-    assert store.tables[("vertex", "Person")] == {}
+    assert store.tables[("node", "Person")] == {}
 
 
 def test_replay_is_idempotent():
@@ -87,7 +87,7 @@ def test_replay_is_idempotent():
     assert topology(replica) == topology(cy)
 
 
-def test_label_change_on_an_existing_vertex_is_journaled():
+def test_label_change_on_an_existing_node_is_journaled():
     cy, store = make()
     cy.run("CREATE (:Person {name: 'Ann'})")
     snapshot = cy.graph.copy()

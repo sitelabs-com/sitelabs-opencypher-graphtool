@@ -84,7 +84,7 @@ class _Run(_RunBase):                                 # the runner, continued: m
         return True
 
     def filter_nodes(self, cands: list, labels: tuple, eqs: dict) -> list:
-        """Keep vertices having all `labels` and satisfying every equality, batching store reads."""
+        """Keep nodes having all `labels` and satisfying every equality, batching store reads."""
         g, sc, store = self.g, self.sc, self.store
         if labels:
             cands = [v for v in cands if sc.has_label(g, v, labels, "all")]
@@ -130,11 +130,11 @@ class _Run(_RunBase):                                 # the runner, continued: m
         alive = None
         if how == "id":
             vals = [x for s in eqs["id"] for x in (s if isinstance(s, list) else [s])]
-            sc.prefetch_ids("vertex", vals)
+            sc.prefetch_ids("node", vals)
             out = []
             for x in vals:
                 try:
-                    v = sc.vertex_by_id(g, x)
+                    v = sc.node_by_id(g, x)
                 except ValueError:
                     continue
                 if v is not None and _alive(g, v):
@@ -147,14 +147,14 @@ class _Run(_RunBase):                                 # the runner, continued: m
                 return []
             if store.has_pending():
                 store.flush()                             # searches only see flushed rows
-            types = set(sc.reg("vertex", "type").all_names())
-            rows = store.find_rows("vertex", detail, list(vals), types)
+            types = set(sc.reg("node", "type").all_names())
+            rows = store.find_rows("node", detail, list(vals), types)
             if rows is not None:
                 vs = []
-                sc.prefetch_ids("vertex", [i for _, i, _ in rows])
+                sc.prefetch_ids("node", [i for _, i, _ in rows])
                 for tn, id_, _row in rows:
                     try:
-                        v = sc.vertex_by_id(g, id_)
+                        v = sc.node_by_id(g, id_)
                     except ValueError:
                         continue
                     if v is not None and _alive(g, v) and sc.type_name(g, v) == tn:
@@ -166,7 +166,7 @@ class _Run(_RunBase):                                 # the runner, continued: m
         if how == "mask" or labels:
             if not labels:
                 return list(self._all_alive())
-            idx = sc.candidates(g, "vertex", [("label", labels, "all")])
+            idx = sc.candidates(g, "node", [("label", labels, "all")])
             self.stats["seed_mask"] += 1
             return [v for v in (g.vertex(int(i)) for i in idx) if _alive(g, v)]
         self.stats["seed_scan"] += 1
@@ -193,7 +193,7 @@ class _Run(_RunBase):                                 # the runner, continued: m
             if has_eq and self.store is not None:
                 score = (0, 0)
             elif labels:
-                est = len(self.sc.candidates(self.g, "vertex", [("label", labels, "all")]))
+                est = len(self.sc.candidates(self.g, "node", [("label", labels, "all")]))
                 score = (1 if has_eq else 2, est)
             else:
                 score = (3, self.g.num_vertices())
@@ -278,12 +278,12 @@ class _Run(_RunBase):                                 # the runner, continued: m
     def other_end(self, v, e):
         return e.target() if e.source() == v else e.source()
 
-    def neighbourhood(self, vertices: list, direction: str, types: tuple = (), labels: tuple = ()) -> None:
-        """The hook before the matcher reads incident edges: it is about to read the `direction`
-        ("out" | "in" | "all") edges of `vertices`, keeping those of one of `types` (none: any) whose
+    def neighbourhood(self, nodes: list, direction: str, types: tuple = (), labels: tuple = ()) -> None:
+        """The hook before the matcher reads incident relationships: it is about to read the `direction`
+        ("out" | "in" | "all") relationships of `nodes`, keeping those of one of `types` (none: any) whose
         other end has every one of `labels`. On a local graph there is nothing to do. A runner whose
-        graph is a cache of a graph held elsewhere adds those edges and their far ends to it here,
-        in one batch, so that what follows reads them locally. It may leave out edges outside the
+        graph is a cache of a graph held elsewhere adds those relationships and their far ends to it here,
+        in one batch, so that what follows reads them locally. It may leave out relationships outside the
         filters: the matcher still applies them."""
 
     def rel_type_ok(self, e, rel: PRel) -> bool:
@@ -301,7 +301,7 @@ class _Run(_RunBase):                                 # the runner, continued: m
             return self.expand_varlen(rows, part, names, rnames, ri, a, b, fwd, direction, h)
         self.neighbourhood([r[names[a]] for r in rows if isinstance(r[names[a]], Vertex)], d, rel.types,
                            tuple(sorted(set(to_node.labels) | (h["labels"] if h else set()))))
-        trips = []                                         # (row, edge, other)
+        trips = []                                         # (row, relationship, other)
         for r in rows:
             self.tick()
             v = r[names[a]]
@@ -365,7 +365,7 @@ class _Run(_RunBase):                                 # the runner, continued: m
         to_node, to_name = part.nodes[b], names[b]
         cap = rel.hi if rel.hi is not None else self.eng.varlen_cap
         # level-synchronous trail enumeration, every row's level at once (one neighbourhood() per
-        # level): per row [row, edges used before, level, results]; state = (vertex, edges, vertices-between)
+        # level): per row [row, relationships used before, level, results]; state = (node, relationships, nodes-between)
         states = []
         for r in rows:
             v0 = r[names[a]]

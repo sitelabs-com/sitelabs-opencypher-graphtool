@@ -20,10 +20,10 @@ import pytest
 from graph_tool import Graph
 
 import opencypher_graphtool as C
-from opencypher_graphtool import EdgeModel, Field, InMemoryStore, Models, OpenCypherError, Vector, VectorField, VertexModel, opencypher
+from opencypher_graphtool import RelationshipModel, Field, InMemoryStore, Models, OpenCypherError, Vector, VectorField, NodeModel, opencypher
 
 
-class Doc(VertexModel):
+class Doc(NodeModel):
     class Meta:
         type = "Doc"
     title: str = Field(index=True)
@@ -33,7 +33,7 @@ class Doc(VertexModel):
     unindexed: Vector[2] = Field(default_factory=lambda: [0.0, 0.0])
 
 
-class Cites(EdgeModel):
+class Cites(RelationshipModel):
     class Meta:
         type = "CITES"
 
@@ -57,19 +57,19 @@ DOCS = [{"t": "a", "k": "paper", "e": [1, 0, 0]}, {"t": "b", "k": "note", "e": [
 # the data model
 # --------------------------------------------------------------------------------------- #
 def test_vector_fields_map_to_cassandra_vectors_and_validate_their_length():
-    info = models()._by[("vertex", "Doc")].fields
+    info = models()._by[("node", "Doc")].fields
     assert (info["embedding"].cql, info["embedding"].dim, info["embedding"].index, info["embedding"].similarity) \
         == ("vector<float, 3>", 3, True, "cosine")
     assert (info["unindexed"].cql, info["unindexed"].index, info["unindexed"].similarity) == ("vector<float, 2>", False, None)
     assert not info["embedding"].required                                # VectorField defaults to None
     m = models()
-    assert m.coerce_props("vertex", "Doc", {"embedding": [1, 2, 3]}) == {"embedding": [1.0, 2.0, 3.0]}
+    assert m.coerce_props("node", "Doc", {"embedding": [1, 2, 3]}) == {"embedding": [1.0, 2.0, 3.0]}
     with pytest.raises(ValueError, match="at least 3"):
-        m.coerce_props("vertex", "Doc", {"embedding": [1, 2]})
+        m.coerce_props("node", "Doc", {"embedding": [1, 2]})
     with pytest.raises(ValueError, match="at most 3"):
-        m.coerce_props("vertex", "Doc", {"embedding": [1, 2, 3, 4]})
+        m.coerce_props("node", "Doc", {"embedding": [1, 2, 3, 4]})
     with pytest.raises(ValueError):
-        m.coerce_props("vertex", "Doc", {"embedding": ["x", 2, 3]})
+        m.coerce_props("node", "Doc", {"embedding": ["x", 2, 3]})
 
 
 def test_vector_field_options_are_checked():
@@ -78,7 +78,7 @@ def test_vector_field_options_are_checked():
     with pytest.raises(TypeError, match="positive integer"):
         Vector[0]
 
-    class NotAVector(VertexModel):
+    class NotAVector(NodeModel):
         class Meta:
             type = "NotAVector"
         x: str | None = VectorField()
@@ -102,7 +102,7 @@ def fake_store(columns: dict, indexes: dict):
     cols = {c: NS(cql_type=t, name=c) for c, t in columns.items()}
     idx = {name: NS(index_options=opts) for name, opts in indexes.items()}
     tables = {"doc": NS(columns=cols, indexes=idx)}
-    return NS(keyspace="ks", id_column="id", id_type="uuid", reverse_table="reverse_vertex_ids",
+    return NS(keyspace="ks", id_column="id", id_type="uuid", reverse_table="reverse_node_ids",
               session=NS(cluster=NS(metadata=NS(keyspaces={"ks": NS(tables=tables)}))))
 
 
@@ -222,7 +222,7 @@ def test_vector_search_errors():
         ("CALL vector.search('Doc', 'embedding', [1, 0, 0], 0) YIELD node RETURN node", "from 1 to 1000"),
         ("CALL vector.search('Doc', 'title', [1, 0, 0], 3) YIELD node RETURN node", "is not a Vector field"),
         ("CALL vector.search('Doc', 'unindexed', [1, 0], 3) YIELD node RETURN node", "has no vector index"),
-        ("CALL vector.search('Nope', 'embedding', [1, 0, 0], 3) YIELD node RETURN node", "no vertex model"),
+        ("CALL vector.search('Nope', 'embedding', [1, 0, 0], 3) YIELD node RETURN node", "no node model"),
         ("CALL vector.search('Doc', 'embedding', [1, 0, 0], 3, {unindexed: [0, 0]}) YIELD node RETURN node",
          "can only filter on indexed fields"),
         ("CALL vector.search('Doc', 'embedding', [1, 0, 0], 3, {kind: 7}) YIELD node RETURN node", "filter kind"),

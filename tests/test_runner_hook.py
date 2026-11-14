@@ -23,8 +23,8 @@ from opencypher_graphtool.clauses import _Run
 class Recording(_Run):
     calls: list = []
 
-    def neighbourhood(self, vertices, direction, types=(), labels=()):
-        Recording.calls.append((len(vertices), direction, tuple(types), tuple(labels)))
+    def neighbourhood(self, nodes, direction, types=(), labels=()):
+        Recording.calls.append((len(nodes), direction, tuple(types), tuple(labels)))
 
 
 class RecordingOpenCypher(OpenCypher):

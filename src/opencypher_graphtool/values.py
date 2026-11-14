@@ -33,7 +33,7 @@ from .ids import new_id
 # =========================================================================== #
 @dataclass(frozen=True, eq=False)
 class CPath:
-    """A path value during execution: vertices v0..vn and the edges between them."""
+    """A path value during execution: nodes v0..vn and the relationships between them."""
     nodes: tuple
     rels: tuple
 

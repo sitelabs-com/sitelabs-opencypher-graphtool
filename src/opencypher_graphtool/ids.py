@@ -29,7 +29,7 @@ def new_id() -> str:
 def bulk_node_id(type_name: str, key: str, value: Any) -> str:
     """The id of the node a file import made for (type, natural key, value): deterministic, so a
     relationship row finds its endpoints without a search and a re-import updates, not duplicates."""
-    return stable_id("bulk", "vertex", type_name, key, repr(value))
+    return stable_id("bulk", "vertex", type_name, key, repr(value))   # "vertex": the ids' derivation, never changed
 
 
 def stable_id(*parts: Any, namespace: _uuid.UUID = _uuid.NAMESPACE_URL) -> str:

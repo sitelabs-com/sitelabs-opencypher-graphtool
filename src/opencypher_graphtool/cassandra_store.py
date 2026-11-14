@@ -30,17 +30,18 @@ from .stores import PropertyStore
 
 log = logging.getLogger(__name__)
 
-REVERSE_ID_TABLE = "reverse_vertex_ids"   # default name of the id -> index table
+REVERSE_ID_TABLE = "reverse_node_ids"   # default name of the id -> index table
+LEGACY_REVERSE_ID_TABLE = "reverse_vertex_ids"   # its name before 0.2.0: a keyspace that has it keeps it
 
 
 class CassandraStore(PropertyStore):
     """Apache Cassandra backend (needs `pip install cassandra-driver`).
 
-    One table per vertex type and per edge type, primary key = `id_column`.
+    One table per node type and per relationship type, primary key = `id_column`.
     The graph-tool "type" value is mapped to a table name with `table_namer`:
 
         CassandraStore(session, "graph",
-                       table_namer=lambda kind, t: ("v_" if kind == "vertex" else "e_") + t)
+                       table_namer=lambda kind, t: ("v_" if kind == "node" else "e_") + t)
 
     Pushdown needs searchable columns. By default searchability is detected
     from table metadata (partition key + secondary indexes). Override with
@@ -61,14 +62,15 @@ class CassandraStore(PropertyStore):
                  table_namer: Callable[[str, str], str] | None = None,
                  id_column: str = "id", allow_filtering: bool = False,
                  searchable: dict[str, set] | None = None,
-                 reverse_table: str = REVERSE_ID_TABLE, id_type: str = "uuid",
+                 reverse_table: str | None = None, id_type: str = "uuid",
                  read_consistency: Any = None, write_consistency: Any = None,
                  concurrency: int = 100, vector_write_concurrency: int = 8, **kw):
         super().__init__(**kw)
         self.read_consistency, self.write_consistency = read_consistency, write_consistency
         self.concurrency = concurrency
         self.vector_write_concurrency = max(1, vector_write_concurrency)
-        self.reverse_table = reverse_table   # id -> graph-tool index (`OpenCypher(..., id_index="store")`)
+        # id -> graph-tool index (`OpenCypher(..., id_index="store")`)
+        self.reverse_table = reverse_table or self._default_reverse_table(session, keyspace)
         self.id_type = id_type               # CQL type of id columns in tables WE create
         self.session, self.keyspace = session, keyspace  # ids: text OR uuid columns both work
         self.table_namer = table_namer or (lambda kind, type_name: type_name)
@@ -76,6 +78,17 @@ class CassandraStore(PropertyStore):
         self.allow_filtering = allow_filtering
         self.searchable = searchable
         self._stmts: dict[str, Any] = {}
+
+    @staticmethod
+    def _default_reverse_table(session, keyspace: str) -> str:
+        """REVERSE_ID_TABLE; or, in a keyspace made before 0.2.0, the table it already has."""
+        try:
+            tables = session.cluster.metadata.keyspaces[keyspace].tables
+            if LEGACY_REVERSE_ID_TABLE in tables and REVERSE_ID_TABLE not in tables:
+                return LEGACY_REVERSE_ID_TABLE
+        except (AttributeError, KeyError, TypeError):
+            pass
+        return REVERSE_ID_TABLE
 
     def attach_models(self, models: "Models") -> None:
         super().attach_models(models)
@@ -330,12 +343,12 @@ _REV_MARKER = "00000000-0000-0000-0000-000000000000"   # row that says "the tabl
 
 
 class _StoreIdIndex:
-    """uuid -> vertex index / Edge kept in the store's reverse table (default name
-    `reverse_vertex_ids`) instead of a Python dict, so startup does not scan the graph.
+    """uuid -> node index / Edge kept in the store's reverse table (default name
+    `reverse_node_ids`) instead of a Python dict, so startup does not scan the graph.
 
     graph-tool's own id property map stays the source of truth: every hit is validated against
     it, so a stale row can never return the wrong element. A row whose element no longer exists is
-    simply a miss. If a vertex row points at a DIFFERENT live id (the graph was renumbered), the
+    simply a miss. If a node row points at a DIFFERENT live id (the graph was renumbered), the
     index degrades to an in-memory dict built once from the graph (with a warning) -- run
     `cy.repair(reverse="rebuild")` to fix the table. Writes are staged with the entity rows and
     flushed/rolled back together with them."""
@@ -343,7 +356,7 @@ class _StoreIdIndex:
 
     def __init__(self, sc: "Schema", kind: str, store: "PropertyStore"):
         self.sc, self.kind, self.store = sc, kind, store
-        self._tag = "v" if kind == "vertex" else "e"
+        self._tag = "v" if kind == "node" else "e"
         self._fb: dict | None = None             # degraded in-memory index
 
     def prefetch(self, ids: Iterable[str]) -> None:
@@ -353,12 +366,12 @@ class _StoreIdIndex:
     def _build_fallback(self) -> dict:
         sc = self.sc
         g = sc._graph
-        pm = (g.vp if self.kind == "vertex" else g.ep)[sc.id_map]
+        pm = (g.vp if self.kind == "node" else g.ep)[sc.id_map]
         fb = {}
-        for el in (g.vertices() if self.kind == "vertex" else g.edges()):
+        for el in (g.vertices() if self.kind == "node" else g.edges()):
             i = pm[el]
             if i:
-                fb[norm_id(i)] = int(el) if self.kind == "vertex" else el
+                fb[norm_id(i)] = int(el) if self.kind == "node" else el
         self._fb = fb
         return fb
 
@@ -372,7 +385,7 @@ class _StoreIdIndex:
         sc, g = self.sc, self.sc._graph
         try:
             idx = int(row["idx"])
-            if self.kind == "vertex":
+            if self.kind == "node":
                 gid = g.vp[sc.id_map][g.vertex(idx)]
                 if gid == id_:
                     return idx
@@ -385,7 +398,7 @@ class _StoreIdIndex:
                 r = self._build_fallback().get(id_)
                 return default if r is None else r
             for e in g.edge(g.vertex(int(row["src"])), g.vertex(int(row["dst"])), all_edges=True) or ():
-                if g.ep[sc.id_map][e] == id_:     # the edge itself is authoritative, not its index
+                if g.ep[sc.id_map][e] == id_:     # the relationship itself is authoritative, not its index
                     if int(g.edge_index[e]) != idx:
                         sc.stale_hits += 1
                     return e
@@ -404,14 +417,14 @@ class _StoreIdIndex:
 
     def __setitem__(self, id_: str, el: Any) -> None:
         g = self.sc._graph
-        if self.kind == "vertex":
+        if self.kind == "node":
             props = {"kind": "v", "idx": int(el)}
         else:
             props = {"kind": "e", "idx": int(g.edge_index[el]),
                      "src": int(el.source()), "dst": int(el.target())}
         self.store.stage_write("reverse", "ids", id_, props)
         if self._fb is not None:
-            self._fb[id_] = int(el) if self.kind == "vertex" else el
+            self._fb[id_] = int(el) if self.kind == "node" else el
 
     def pop(self, id_: str, default: Any = None) -> Any:
         self.store.stage_delete("reverse", "ids", id_)

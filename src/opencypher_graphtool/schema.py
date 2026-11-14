@@ -44,7 +44,7 @@ def _store(g: Graph) -> "PropertyStore | None":
 
 
 class Registry:
-    """name <-> bit position for one namespace (e.g. vertex labels).
+    """name <-> bit position for one namespace (e.g. node labels).
 
     spec: list of names (bits assigned in order) or {name: bit_position}.
     """
@@ -105,9 +105,9 @@ class Registry:
 class Schema:
     """Configuration + runtime helpers for ids, labels and types. One per graph.
 
-    vertex_labels / vertex_types / edge_types:
+    node_labels / node_types / relationship_types:
         list of names, or {name: bit position}.   (three independent namespaces)
-    A vertex has ANY NUMBER of labels (a bitmask) but exactly ONE type (its table). An edge has
+    A node has ANY NUMBER of labels (a bitmask) but exactly ONE type (its table). A relationship has
     exactly ONE type (its relationship type, its table) and NO labels.
     bits: 32 or 64 -> int32/int64 property maps; that many names per namespace.
     label_map / type_map / id_map: names of the internal property maps.
@@ -115,13 +115,13 @@ class Schema:
 
     ATTACH_KEY = "gremlin_gt_schema"     # the graph property saved graph files use: kept for compatibility
 
-    def __init__(self, vertex_labels=None, vertex_types=None, edge_types=None,
+    def __init__(self, node_labels=None, node_types=None, relationship_types=None,
                  bits: int = 64, auto_register: bool = True,
                  label_map: str = "labels", type_map: str = "type", id_map: str = "uuid",
-                 edge_labels=None):
-        if edge_labels is not None:
-            raise ValueError("edges have exactly one type and no labels: pass edge_types=... "
-                             "(the relationship type) instead of edge_labels")
+                 relationship_labels=None):
+        if relationship_labels is not None:
+            raise ValueError("relationships have exactly one type and no labels: pass relationship_types=... "
+                             "(the relationship type) instead of relationship_labels")
         if bits not in (32, 64):
             raise ValueError("bits must be 32 or 64")
         self.bits = bits
@@ -130,13 +130,13 @@ class Schema:
         self.label_map, self.type_map, self.id_map = label_map, type_map, id_map
         mk = lambda spec, what: Registry(spec, bits, auto_register, what)
         self._reg = {
-            ("vertex", "label"): mk(vertex_labels, "vertex label"),
-            ("vertex", "type"): mk(vertex_types, "vertex type"),
-            ("edge", "type"): mk(edge_types, "edge type"),
+            ("node", "label"): mk(node_labels, "node label"),
+            ("node", "type"): mk(node_types, "node type"),
+            ("relationship", "type"): mk(relationship_types, "relationship type"),
         }
         self._graph = None
-        self.computed: dict[str, dict] = {}  # algorithm results: name -> {vertex index: value}
-        self._vidx: Any = {}                # uuid -> vertex index   (dict, or _StoreIdIndex)
+        self.computed: dict[str, dict] = {}  # algorithm results: name -> {node index: value}
+        self._vidx: Any = {}                # uuid -> node index   (dict, or _StoreIdIndex)
         self._eidx: Any = {}                # uuid -> Edge
         self._id_mode = "memory"            # "memory": dict built at bind | "store": reverse table
         self._store: Any = None
@@ -144,8 +144,8 @@ class Schema:
 
     # -- registries / stored form ------------------------------------------- #
     def reg(self, kind: str, what: str) -> Registry:
-        if kind == "edge" and what == "label":
-            what = "type"                    # an edge has no labels: its "label" IS its type
+        if kind == "relationship" and what == "label":
+            what = "type"                    # a relationship has no labels: its "label" IS its type
         return self._reg[(kind, what)]
 
     @property
@@ -163,14 +163,17 @@ class Schema:
     def to_dict(self) -> dict:
         return {"bits": self.bits, "auto_register": self.auto_register,
                 "label_map": self.label_map, "type_map": self.type_map, "id_map": self.id_map,
-                "vertex_labels": self.reg("vertex", "label").to_dict(),
-                "vertex_types": self.reg("vertex", "type").to_dict(),
-                "edge_types": self.reg("edge", "type").to_dict()}
+                "node_labels": self.reg("node", "label").to_dict(),
+                "node_types": self.reg("node", "type").to_dict(),
+                "relationship_types": self.reg("relationship", "type").to_dict()}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Schema":
-        return cls(vertex_labels=d.get("vertex_labels"),      # (old files may carry "edge_labels": ignored)
-                   vertex_types=d.get("vertex_types"), edge_types=d.get("edge_types"),
+        # graphs saved before 0.2.0 name them vertex_labels, vertex_types and edge_types (and may
+        # carry "edge_labels": ignored)
+        return cls(node_labels=d.get("node_labels", d.get("vertex_labels")),
+                   node_types=d.get("node_types", d.get("vertex_types")),
+                   relationship_types=d.get("relationship_types", d.get("edge_types")),
                    bits=d.get("bits", 64), auto_register=d.get("auto_register", True),
                    label_map=d.get("label_map", "labels"), type_map=d.get("type_map", "type"),
                    id_map=d.get("id_map", "uuid"))
@@ -202,16 +205,16 @@ class Schema:
     def bind(self, g: Graph, store: Any = None, id_index: str | None = None) -> None:
         """Create/validate the internal property maps and set up the uuid index.
 
-        id_index "memory" (default): one pass over every vertex and edge builds a dict (O(V+E)).
+        id_index "memory" (default): one pass over every node and relationship builds a dict (O(V+E)).
         id_index "store": ids are looked up in the store's reverse table, nothing is scanned
         (needs `store`; the table is built once from the graph if it does not exist yet).
         None keeps the current mode."""
         if self._graph is not None and self._graph is not g:
             raise ValueError("this Schema is already bound to another graph")
         self._graph = g
-        for kind, pms, new in (("vertex", g.vp, g.new_vertex_property),
-                               ("edge", g.ep, g.new_edge_property)):
-            for name, dtype in (((self.label_map, self.dtype),) if kind == "vertex" else ()) + (
+        for kind, pms, new in (("node", g.vp, g.new_vertex_property),
+                               ("relationship", g.ep, g.new_edge_property)):
+            for name, dtype in (((self.label_map, self.dtype),) if kind == "node" else ()) + (
                     (self.type_map, self.dtype), (self.id_map, "string")):
                 if name not in pms:
                     pms[name] = new(dtype)
@@ -237,8 +240,8 @@ class Schema:
             except KeyError as ex:
                 raise ValueError(f"{ex.args[0]} -- create the reverse id table first "
                                  "(CassandraStore.create_reverse_table())") from None
-            self._vidx = _StoreIdIndex(self, "vertex", self._store)
-            self._eidx = _StoreIdIndex(self, "edge", self._store)
+            self._vidx = _StoreIdIndex(self, "node", self._store)
+            self._eidx = _StoreIdIndex(self, "relationship", self._store)
             if not self._store.row("reverse", "ids", _REV_MARKER):
                 if g.num_vertices() + g.num_edges() == 0:
                     self._store.write_rows("reverse", "ids", [(_REV_MARKER, {"kind": "m", "idx": 1})])
@@ -253,17 +256,17 @@ class Schema:
         for v in g.vertices():
             i = vpm[v]
             if i:
-                self._index_put("vertex", norm_id(i), v)
+                self._index_put("node", norm_id(i), v)
         for e in g.edges():
             i = epm[e]
             if i:
-                self._index_put("edge", norm_id(i), e)
+                self._index_put("relationship", norm_id(i), e)
 
     def assign_missing_ids(self, g: Graph) -> int:
         """Give every element that has no id a fresh UUID. Returns how many."""
         n = 0
-        for kind, els in (("vertex", g.vertices()), ("edge", g.edges())):
-            pm = (g.vp if kind == "vertex" else g.ep)[self.id_map]
+        for kind, els in (("node", g.vertices()), ("relationship", g.edges())):
+            pm = (g.vp if kind == "node" else g.ep)[self.id_map]
             for el in els:
                 if not pm[el]:
                     i = new_id()
@@ -273,7 +276,7 @@ class Schema:
         return n
 
     def set_computed(self, name: str, values: dict) -> None:
-        """Expose per-vertex algorithm output (pageRank, ...) as a readable property."""
+        """Expose per-node algorithm output (pageRank, ...) as a readable property."""
         self.computed[name] = values
 
     def clear_computed(self) -> None:
@@ -281,17 +284,17 @@ class Schema:
 
     # -- id index -------------------------------------------------------------- #
     def _index_put(self, kind: str, id_: str, el: Any) -> None:
-        d = self._vidx if kind == "vertex" else self._eidx
+        d = self._vidx if kind == "node" else self._eidx
         if getattr(d, "external", False):
             d[id_] = el                        # duplicates were ruled out in prepare()
             return
         if id_ in d:
             raise ValueError(f"duplicate {kind} id {id_}")
-        d[id_] = int(el) if kind == "vertex" else el
+        d[id_] = int(el) if kind == "node" else el
 
     def prefetch_ids(self, kind: str, ids: Iterable[Any]) -> None:
         """Warm the id index for many ids with ONE round trip (store mode; no-op otherwise)."""
-        d = self._vidx if kind == "vertex" else self._eidx
+        d = self._vidx if kind == "node" else self._eidx
         if getattr(d, "external", False):
             ok = []
             for i in ids:
@@ -302,22 +305,22 @@ class Schema:
             d.prefetch(ok)
 
     def rebuild_reverse(self, g: Graph, store: Any) -> dict:
-        """(Re)build the reverse id table from graph-tool: write a row for every live vertex and
-        edge, delete rows whose id is not in the graph, then (re)write the completeness marker.
+        """(Re)build the reverse id table from graph-tool: write a row for every live node and
+        relationship, delete rows whose id is not in the graph, then (re)write the completeness marker.
         One pass, O(V+E); this is the bootstrap/migration step and the repair for a damaged table."""
-        out = {"vertices": 0, "edges": 0, "orphans_deleted": 0}
-        plural = {"vertex": "vertices", "edge": "edges"}
+        out = {"nodes": 0, "relationships": 0, "orphans_deleted": 0}
+        plural = {"node": "nodes", "relationship": "relationships"}
         seen: set = set()
-        for kind in ("vertex", "edge"):
-            pm = (g.vp if kind == "vertex" else g.ep)[self.id_map]
+        for kind in ("node", "relationship"):
+            pm = (g.vp if kind == "node" else g.ep)[self.id_map]
             batch: list = []
-            for el in (g.vertices() if kind == "vertex" else g.edges()):
+            for el in (g.vertices() if kind == "node" else g.edges()):
                 i = pm[el]
                 if not i:
                     continue
                 i = norm_id(i)
                 seen.add(i)
-                if kind == "vertex":
+                if kind == "node":
                     batch.append((i, {"kind": "v", "idx": int(el)}))
                 else:
                     batch.append((i, {"kind": "e", "idx": int(g.edge_index[el]),
@@ -342,21 +345,21 @@ class Schema:
                 d.clear()
         return out
 
-    def vertex_by_id(self, g: Graph, id_: Any):
+    def node_by_id(self, g: Graph, id_: Any):
         i = self._vidx.get(norm_id(id_))
         return None if i is None else g.vertex(i)
 
-    def edge_by_id(self, id_: Any):
+    def relationship_by_id(self, id_: Any):
         return self._eidx.get(norm_id(id_))
 
     # -- per-element access ------------------------------------------------------ #
     @staticmethod
     def kind_of(el: Any) -> str:
         if _is_v(el):
-            return "vertex"
+            return "node"
         if _is_e(el):
-            return "edge"
-        raise TypeError(f"expected a vertex or edge, got {type(el).__name__}")
+            return "relationship"
+        raise TypeError(f"expected a node or relationship, got {type(el).__name__}")
 
     def _pm(self, g: Graph, el: Any, name: str):
         return (g.vp if _is_v(el) else g.ep)[name]
@@ -365,7 +368,7 @@ class Schema:
         return self._pm(g, el, self.id_map)[el] or None
 
     def label_mask(self, g: Graph, el: Any) -> int:
-        if _is_e(el):                        # edges have no labels: the "label" is the type
+        if _is_e(el):                        # relationships have no labels: the "label" is the type
             return self.type_mask(g, el)
         return self.from_stored(self._pm(g, el, self.label_map)[el])
 
@@ -419,8 +422,8 @@ class Schema:
             m, possible = self.want(kind, what, names, mode)
             if not possible:
                 return np.zeros(0, dtype=np.int64)
-            pm = (g.vp if kind == "vertex" else g.ep)[
-                self.label_map if (what == "label" and kind == "vertex") else self.type_map]
+            pm = (g.vp if kind == "node" else g.ep)[
+                self.label_map if (what == "label" and kind == "node") else self.type_map]
             a = np.asarray(pm.a)
             ms = a.dtype.type(self.to_stored(m))
             hit = ((a & ms) != 0) if mode == "any" else ((a & ms) == ms)
@@ -432,22 +435,22 @@ class Schema:
         """Resolve everything that can fail BEFORE graph-tool is mutated."""
         treg = self.reg(kind, "type")
         lm = 0
-        if kind == "edge":
+        if kind == "relationship":
             if labels:
-                raise ValueError("an edge has a type and no labels")
+                raise ValueError("a relationship has a type and no labels")
         else:
-            lreg = self.reg("vertex", "label")
+            lreg = self.reg("node", "label")
             for l in labels:
                 lm |= lreg.resolve(l)
         tm = treg.resolve(type_name)
         eid = norm_id(id_) if id_ is not None else new_id()
-        if id_ is not None and eid in (self._vidx if kind == "vertex" else self._eidx):
+        if id_ is not None and eid in (self._vidx if kind == "node" else self._eidx):
             raise ValueError(f"duplicate {kind} id {eid}")
         return lm, tm, eid
 
     def commit(self, g: Graph, kind: str, el: Any, lm: int, tm: int, eid: str) -> None:
-        pms = g.vp if kind == "vertex" else g.ep
-        if kind == "vertex":
+        pms = g.vp if kind == "node" else g.ep
+        if kind == "node":
             pms[self.label_map][el] = self.to_stored(lm)
         pms[self.type_map][el] = self.to_stored(tm)
         pms[self.id_map][el] = eid
@@ -456,11 +459,11 @@ class Schema:
 
     def retire(self, g: Graph, kind: str, el: Any) -> None:
         """Forget an element's id and zero its masks (so scans never see it)."""
-        pms = g.vp if kind == "vertex" else g.ep
+        pms = g.vp if kind == "node" else g.ep
         eid = pms[self.id_map][el]
         if eid:
-            (self._vidx if kind == "vertex" else self._eidx).pop(eid, None)
-        if kind == "vertex":
+            (self._vidx if kind == "node" else self._eidx).pop(eid, None)
+        if kind == "node":
             pms[self.label_map][el] = 0
         pms[self.type_map][el] = 0
         pms[self.id_map][el] = ""

@@ -33,7 +33,7 @@ from .values import _hk
 from .results import Node, Path, Rel, Result
 from .models import Models
 from .schema import Schema, _SCHEMAS, _STORES
-from .elements import _create_edge, _create_vertex, _set_props
+from .elements import _create_relationship, _create_node, _set_props
 from .stores import PropertyStore
 from .cassandra_store import _REV_MARKER
 from .graph_functions import VECTOR_SCAN_LIMIT
@@ -173,35 +173,35 @@ class OpenCypher:
                     continue
                 tag, id_ = op[0], norm_id(op[1])
                 if tag == "v+":
-                    if sc.vertex_by_id(g, id_) is not None:
+                    if sc.node_by_id(g, id_) is not None:
                         continue
-                    lm, tm, _ = sc.prepare("vertex", tuple(op[2]), op[3], None)
-                    sc.commit(g, "vertex", g.add_vertex(), lm, tm, id_)
+                    lm, tm, _ = sc.prepare("node", tuple(op[2]), op[3], None)
+                    sc.commit(g, "node", g.add_vertex(), lm, tm, id_)
                 elif tag == "e+":
-                    src, dst = sc.vertex_by_id(g, op[2]), sc.vertex_by_id(g, op[3])
-                    if sc.edge_by_id(id_) is not None or src is None or dst is None:
+                    src, dst = sc.node_by_id(g, op[2]), sc.node_by_id(g, op[3])
+                    if sc.relationship_by_id(id_) is not None or src is None or dst is None:
                         continue
-                    lm, tm, _ = sc.prepare("edge", (), op[4], None)
-                    sc.commit(g, "edge", g.add_edge(src, dst), lm, tm, id_)
+                    lm, tm, _ = sc.prepare("relationship", (), op[4], None)
+                    sc.commit(g, "relationship", g.add_edge(src, dst), lm, tm, id_)
                 elif tag == "v-":
-                    v = sc.vertex_by_id(g, id_)
+                    v = sc.node_by_id(g, id_)
                     if v is None:
                         continue
                     if "_dropped" not in g.vp:
                         g.vp["_dropped"] = g.new_vertex_property("bool")
-                    sc.retire(g, "vertex", v)
+                    sc.retire(g, "node", v)
                     g.vp["_dropped"][v] = True
                 elif tag == "e-":
-                    e = sc.edge_by_id(id_)
+                    e = sc.relationship_by_id(id_)
                     if e is None:
                         continue
-                    sc.retire(g, "edge", e)
+                    sc.retire(g, "relationship", e)
                     g.remove_edge(e)
                 elif tag == "vl":
-                    v = sc.vertex_by_id(g, id_)
+                    v = sc.node_by_id(g, id_)
                     if v is None:
                         continue
-                    reg, lm = sc.reg("vertex", "label"), 0
+                    reg, lm = sc.reg("node", "label"), 0
                     for l in op[2]:
                         lm |= reg.resolve(l)
                     g.vp[sc.label_map][v] = sc.to_stored(lm)
@@ -397,7 +397,7 @@ class OpenCypher:
         if value is None or value == "":
             raise OpenCypherError(f"missing key {key!r}")
         try:
-            return self.store.coerce_props("vertex", type_name, {key: value})[key]
+            return self.store.coerce_props("node", type_name, {key: value})[key]
         except (KeyError, ValueError) as ex:
             raise OpenCypherError(_msg(ex)) from None
 
@@ -445,13 +445,13 @@ class OpenCypher:
                     if id_ in seen:
                         why = "duplicate"
                         raise OpenCypherError(f"{key}={kv!r} appears twice in this batch")
-                    v = sc.vertex_by_id(g, id_)
+                    v = sc.node_by_id(g, id_)
                     if v is not None and on_existing == "error":
                         raise OpenCypherError(f"{type_name} {key}={kv!r} already exists")
                     if collect and v is None:
-                        self._check_new_row("vertex", type_name, props)
+                        self._check_new_row("node", type_name, props)
                     elif collect:
-                        self.store.coerce_props("vertex", type_name, props)
+                        self.store.coerce_props("node", type_name, props)
                     seen.add(id_)
                     if v is not None:
                         if on_existing == "skip":
@@ -460,7 +460,7 @@ class OpenCypher:
                         stats["nodes_updated"] += 1
                     applying = True
                     if v is None:
-                        v = _create_vertex(g, labels, type_name, id_)
+                        v = _create_node(g, labels, type_name, id_)
                         stats["nodes_created"] += 1
                     _set_props(g, v, props)
                     stats["properties_set"] += len(props)
@@ -490,18 +490,18 @@ class OpenCypher:
         collect = errors == "collect"
 
         def endpoints(t: str, k: str, values: list) -> dict:
-            """value -> vertex, by natural-key id, else one batched index search."""
+            """value -> node, by natural-key id, else one batched index search."""
             out, missing = {}, []
             for kv in values:
-                v = sc.vertex_by_id(g, bulk_node_id(t, k, kv))
+                v = sc.node_by_id(g, bulk_node_id(t, k, kv))
                 if v is not None:
                     out[kv] = v
                 else:
                     missing.append(kv)
             if missing:
-                found = store.search("vertex", t, k, missing) or []    # None: the key isn't indexed
+                found = store.search("node", t, k, missing) or []    # None: the key isn't indexed
                 for id_, r in found:
-                    v = sc.vertex_by_id(g, id_)
+                    v = sc.node_by_id(g, id_)
                     if v is not None and r.get(k) in missing:
                         out.setdefault(r.get(k), v)
             return out
@@ -535,18 +535,18 @@ class OpenCypher:
                             continue
                         why = "missing_endpoint"
                         raise OpenCypherError(f"no {what}")
-                    id_ = stable_id("bulk", "edge", type_name, sc.get_id(g, va), sc.get_id(g, vb))
+                    id_ = stable_id("bulk", "edge", type_name, sc.get_id(g, va), sc.get_id(g, vb))   # "edge": as before
                     if id_ in seen:
                         why = "duplicate"
                         raise OpenCypherError(f"the pair ({a!r}, {b!r}) appears twice in this batch")
                     props = {k: v for k, v in row.items() if k not in ("from", "to") and v is not None and v != ""}
-                    e = sc.edge_by_id(id_)
+                    e = sc.relationship_by_id(id_)
                     if e is not None and on_existing == "error":
                         raise OpenCypherError(f"{type_name} ({a!r})->({b!r}) already exists")
                     if collect and e is None:
-                        self._check_new_row("edge", type_name, props)
+                        self._check_new_row("relationship", type_name, props)
                     elif collect:
-                        store.coerce_props("edge", type_name, props)
+                        store.coerce_props("relationship", type_name, props)
                     seen.add(id_)
                     if e is not None:
                         if on_existing == "skip":
@@ -555,7 +555,7 @@ class OpenCypher:
                         stats["relationships_updated"] += 1
                     applying = True
                     if e is None:
-                        e = _create_edge(g, va, vb, type_name, type_name, id_)
+                        e = _create_relationship(g, va, vb, type_name, type_name, id_)
                         stats["relationships_created"] += 1
                     if props:
                         _set_props(g, e, props)
@@ -607,17 +607,17 @@ class OpenCypher:
         rep = VerifyReport()
         use_rev = sc._id_mode == "store"
         expected: dict = {}                       # id -> expected reverse row (store mode)
-        for kind in ("vertex", "edge"):
+        for kind in ("node", "relationship"):
             by_type: dict = {}
-            pm = (g.vp if kind == "vertex" else g.ep)[sc.id_map]
-            for el in (g.vertices() if kind == "vertex" else g.edges()):
+            pm = (g.vp if kind == "node" else g.ep)[sc.id_map]
+            for el in (g.vertices() if kind == "node" else g.edges()):
                 raw = pm[el]
                 if not raw:
                     continue                      # retired / tombstoned
                 id_ = norm_id(raw)
                 by_type.setdefault(sc.type_name(g, el), set()).add(id_)
                 if use_rev:
-                    expected[id_] = ({"kind": "v", "idx": int(el)} if kind == "vertex" else
+                    expected[id_] = ({"kind": "v", "idx": int(el)} if kind == "node" else
                                      {"kind": "e", "idx": int(g.edge_index[el]),
                                       "src": int(el.source()), "dst": int(el.target())})
             names = set(by_type) | set(store._types.get(kind) or ())
@@ -664,7 +664,7 @@ class OpenCypher:
              missing  (graph element without a row):
                 "report"    do nothing (default)
                 "recreate"  write an empty row (the id is back in sync, its properties are lost)
-                "tombstone" remove the element from the graph (vertices are tombstoned, their
+                "tombstone" remove the element from the graph (nodes are tombstoned, their
                             relationships removed)
              orphans  (row whose id is not in the graph):
                 "report"    do nothing (default)
@@ -695,22 +695,22 @@ class OpenCypher:
                         store.write_rows(kind, tn, [(i, {}) for i in ids[k:k + 500]])
                     out["rows_recreated"] += len(ids)
             elif missing == "tombstone":
-                verts, edges = {}, {}
+                verts, relationships = {}, {}
                 for (kind, tn), ids in before.missing_rows.items():
                     for i in ids:
-                        if kind == "vertex":
+                        if kind == "node":
                             verts[i] = g.vertex(sc._vidx[i])
                         else:
-                            edges[i] = sc._eidx[i]
-                seen = {int(g.edge_index[e]) for e in edges.values()}
+                            relationships[i] = sc._eidx[i]
+                seen = {int(g.edge_index[e]) for e in relationships.values()}
                 for v in verts.values():             # detach: remove incident relationships too
                     for e in list(v.all_edges()):
                         if int(g.edge_index[e]) not in seen:
                             seen.add(int(g.edge_index[e]))
-                            edges[sc.get_id(g, e) or f"#{int(g.edge_index[e])}"] = e
-                _delete_elements(g, sc, store, verts, edges)
+                            relationships[sc.get_id(g, e) or f"#{int(g.edge_index[e])}"] = e
+                _delete_elements(g, sc, store, verts, relationships)
                 store.flush()
-                out["graph_elements_removed"] = len(verts) + len(edges)
+                out["graph_elements_removed"] = len(verts) + len(relationships)
             if orphans == "delete":
                 for (kind, tn), ids in before.orphan_rows.items():
                     for k in range(0, len(ids), 500):
@@ -776,7 +776,7 @@ class OpenCypher:
             except OpenCypherError:
                 kind, detail = "scan", None
             how = {"id": "uuid lookup", "store": f"store search on {detail!r} (falls back to a scan if not searchable)",
-                   "mask": f"label bit-scan {list(detail) if detail else ''}", "scan": "full vertex scan"}[kind]
+                   "mask": f"label bit-scan {list(detail) if detail else ''}", "scan": "full node scan"}[kind]
         out = [f"{what}: start at {fmt(node)} via {how}"]
         for i, rel in enumerate(part.rels):
             arrow = {"out": "-[{}]->", "in": "<-[{}]-", "both": "-[{}]-"}[rel.direction]
@@ -794,7 +794,7 @@ def opencypher(graph: Graph, store: "PropertyStore | None" = None, schema: Schem
            models: "Models | None" = None, migrate: bool = True) -> OpenCypher:
     """cy = opencypher(graph[, store][, schema]); see OpenCypher.
     lock=False disables the per-graph readers-writer lock."""
-    log.debug("openCypher engine over a graph of %s vertices and %s edges (store %s, id index %s)",
+    log.debug("openCypher engine over a graph of %s nodes and %s relationships (store %s, id index %s)",
               graph.num_vertices(), graph.num_edges(), type(store).__name__ if store is not None else "none",
               id_index or "memory")
     return OpenCypher(graph, store, schema, varlen_cap, lock, atomic, stable_merge_ids, id_index,

@@ -26,7 +26,7 @@ In another project, with graph-tool in its environment:
 
 ```bash
 pip install -e ../sitelabs-opencypher-graphtool[cassandra]        # while developing both side by side
-pip install "opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.1.0"
+pip install "opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.0"
 ```
 
 The `cassandra` extra adds the Cassandra driver (for `CassandraStore`); without it the engine runs
@@ -36,16 +36,16 @@ on `InMemoryStore` or a store of your own.
 
 ```python
 from graph_tool import Graph
-from opencypher_graphtool import EdgeModel, Field, InMemoryStore, Models, VertexModel, opencypher
+from opencypher_graphtool import RelationshipModel, Field, InMemoryStore, Models, NodeModel, opencypher
 
 
-class Person(VertexModel):
+class Person(NodeModel):
     class Meta:
         type = "Person"
     name: str = Field(index=True)
 
 
-class Knows(EdgeModel):
+class Knows(RelationshipModel):
     class Meta:
         type = "KNOWS"
         source, target = "Person", "Person"     # descriptive
@@ -86,9 +86,9 @@ order they load:
 | `lexer`, `ast_nodes`, `parser` | openCypher text to a syntax tree (`parse`) |
 | `values` | Values, null logic, ordering, the built-in functions |
 | `results` | `Node`, `Rel`, `Path`, `Result` |
-| `models` | The data model: `Models`, `VertexModel`, `EdgeModel`, `Field`, `Vector`, migrations |
+| `models` | The data model: `Models`, `NodeModel`, `RelationshipModel`, `Field`, `Vector`, migrations |
 | `schema` | Labels and types as bitmasks, UUID ids, attached to a graph-tool `Graph` |
-| `elements` | Creating, changing and deleting vertices and edges, with undo for transactions |
+| `elements` | Creating, changing and deleting nodes and relationships, with undo for transactions |
 | `stores` | The property store interface (`PropertyStore`) and `InMemoryStore` |
 | `cassandra_store` | `CassandraStore` (the `cassandra` extra) |
 | `execution`, `graph_functions`, `matching`, `clauses` | The query runner, built up module by module: core, graph functions, `MATCH` (pattern expansion), the clauses |
@@ -107,11 +107,11 @@ loads first.
   columns of a type, fetching rows by id, writing them, and optional index search.
 * **The runner and pattern expansion:** `OpenCypher.runner` is the class that runs a query (the
   `_Run` of `clauses`). A subclass can override its matching steps: `seed` (a pattern's start
-  vertices), `filter_nodes`, `choose_start`, and `neighbourhood(vertices, direction, types, labels)`,
-  which the matcher calls before it reads incident edges (once per hop with the whole frontier, once
+  nodes), `filter_nodes`, `choose_start`, and `neighbourhood(nodes, direction, types, labels)`,
+  which the matcher calls before it reads incident relationships (once per hop with the whole frontier, once
   per level of a variable-length pattern, once per BFS layer of shortestPath(), and in degree()). It
   does nothing on a local graph; sitelabs-partitioned-graph uses it to fetch each hop from the
-  partitions that own the vertices.
+  partitions that own the nodes.
 
 ## Tests
 
@@ -127,6 +127,20 @@ The Cassandra tests (`tests/integration/`) need Cassandra on `127.0.0.1:9042`, e
 
 Releases are git tags (`v0.1.0`, ...). The projects using the engine pin a tag in their
 requirements, and move to a new one deliberately.
+
+**0.2.0** names graph elements nodes and relationships everywhere, as openCypher does, not
+vertices and edges (graph-tool's own API, underneath, keeps its names). It changes the API:
+
+| Was | Now |
+|---|---|
+| `VertexModel`, `EdgeModel` | `NodeModel`, `RelationshipModel` |
+| `Schema(vertex_labels=, vertex_types=, edge_types=)`, `reg("vertex", ...)` | `Schema(node_labels=, node_types=, relationship_types=)`, `reg("node", ...)` |
+| The kinds `"vertex"`, `"edge"` (`table_namer(kind, type)`, stores, models) | `"node"`, `"relationship"` |
+| `reverse_vertex_ids` (the default reverse id table) | `reverse_node_ids` |
+
+What was stored before still works: graphs saved with the old schema keys load, a keyspace that
+already has `reverse_vertex_ids` keeps using it, and a MERGE or a file import makes the same ids
+as before (`tests/test_compatibility.py`).
 
 ## Licence
 

@@ -23,7 +23,7 @@ from .values import _opencypher_repr
 # openCypher: results
 # =========================================================================== #
 class Node:
-    """A returned vertex: n["name"], n.labels, n.id (UUID), n.properties."""
+    """A returned node: n["name"], n.labels, n.id (UUID), n.properties."""
     __slots__ = ("id", "labels", "properties")
 
     def __init__(self, id, labels, properties):

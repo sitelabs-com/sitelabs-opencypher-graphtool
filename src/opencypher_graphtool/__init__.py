@@ -37,7 +37,7 @@ Storage model
 * EVERY other property lives in the store, one table per node type and per relationship
   type, keyed by id. `id`, `label` and `type` are therefore reserved property names.
 * A node has ANY NUMBER of labels (bitmask) but exactly ONE type (its table). A relationship
-  has exactly ONE type (:KNOWS) and NO labels: edges carry only the `type` bit map.
+  has exactly ONE type (:KNOWS) and NO labels: relationships carry only the `type` bit map.
   Names are auto-registered on first use (Schema(auto_register=True), 32/64 per registry).
 
 Supported openCypher
@@ -79,7 +79,7 @@ Performance
 Differences from openCypher (read these)
 ----------------------------------------
 * One query = one transaction (atomic, see "Consistency" below); there is no BEGIN/COMMIT
-  across queries. Deleted vertices are tombstoned, not physically removed, because graph-tool
+  across queries. Deleted nodes are tombstoned, not physically removed, because graph-tool
   renumbers on removal.
 * Unbounded variable length (*) is capped at cy.varlen_cap (64). Trail semantics
   (relationships unique per path), which can be exponential on dense graphs.
@@ -102,7 +102,7 @@ graph, shared by everything that drives the same Graph.
 
 Consistency between graph-tool and the store (all on by default):
 * Atomic writes. A write query is all-or-nothing. graph-tool changes are journaled and undone
-  newest-first if anything fails (query error, store down, ...), vertices created by the failed
+  newest-first if anything fails (query error, store down, ...), nodes created by the failed
   query are really removed (no tombstones), and the store is compensated: rows it had already
   written are deleted / restored from their pre-images (read just before the first flush).
   Other threads never see the uncommitted state (the exclusive lock is held until the end).
@@ -125,10 +125,10 @@ Consistency between graph-tool and the store (all on by default):
   are not un-registered by a rollback (harmless: an unused bit).
 
 Fast startup: the reverse id table (`opencypher(..., id_index="store")`).
-* By default the id -> vertex/edge index is a Python dict built at startup by one pass over the
+* By default the id -> node/relationship index is a Python dict built at startup by one pass over the
   whole graph (O(V+E)). With id_index="store" it lives in a Cassandra table instead
-  (default name `reverse_vertex_ids`, one row per vertex AND edge: id, kind 'v'/'e', idx, and
-  src/dst for edges) and startup reads one row. Create it once:
+  (default name `reverse_node_ids`, one row per node AND relationship: id, kind 'v'/'e', idx, and
+  src/dst for relationships) and startup reads one row. Create it once:
       store.create_reverse_table("uuid")   # or "text"; CREATE TABLE ... (id uuid PRIMARY KEY,
                                            #   kind text, idx bigint, src bigint, dst bigint)
   The first start on an existing graph builds the table (one-time O(V+E), with a warning); a
@@ -137,9 +137,9 @@ Fast startup: the reverse id table (`opencypher(..., id_index="store")`).
   write / rollback machinery above. Lookups are batched (one round trip per search result set)
   and cached. Cost: one extra row write per created element and one extra read per uncached id.
 * graph-tool stays the source of truth: every hit is checked against the graph's own id map. A
-  row for a vanished element is a clean miss; a vertex row whose slot holds a DIFFERENT live id
-  (graph renumbered) degrades this process to an in-memory index with a warning; an edge is
-  found by its endpoints and id, so a drifted edge index self-heals. A MISSING row is treated as
+  row for a vanished element is a clean miss; a node row whose slot holds a DIFFERENT live id
+  (graph renumbered) degrades this process to an in-memory index with a warning; a relationship is
+  found by its endpoints and id, so a drifted relationship index self-heals. A MISSING row is treated as
   "no such element" -- after restoring a graph file or the table from a backup run
   `cy.verify()` (reports reverse_missing / reverse_stale / reverse_orphans) and
   `cy.repair(reverse="rebuild")`.
@@ -164,13 +164,13 @@ Durability and limits (hooks for the host application):
 * CassandraStore(read_consistency=, write_consistency=, concurrency=) tune the driver calls.
 
 Pydantic models = the single source of truth (`pip install pydantic`; optional otherwise):
-      class Person(VertexModel):                  # one model = one vertex type = one table
-          class Meta: type = "Person"             # (or class Person(VertexModel, table="people"))
+      class Person(NodeModel):                  # one model = one node type = one table
+          class Meta: type = "Person"             # (or class Person(NodeModel, table="people"))
           name: str = Field(index=True)           # index=True -> Cassandra secondary index
           age: int | None = Field(default=None, ge=0)
           status: Status = Status.ACTIVE          # defaults are WRITTEN when a node is created
-      class Knows(EdgeModel):
-          since: int = Field(ge=1900)             # required on every KNOWS edge
+      class Knows(RelationshipModel):
+          since: int = Field(ge=1900)             # required on every KNOWS relationship
       cy = opencypher(graph, store, models=Models([Person, Knows]))
 * Schema: types/labels (and their bits) come from the models; `Meta.labels` adds extra labels;
   `(:Admin:Person)` is stored in the first label that has a model. The name->bit map is saved in the
@@ -222,11 +222,11 @@ from .locking import GraphLock, lock_of
 from .ids import new_id, norm_id, stable_id
 from .parser import parse
 from .results import Result, Node, Rel, Path
-from .models import Models, VertexModel, EdgeModel, Field, MigrationPlan, Vector, VectorField
+from .models import Models, NodeModel, RelationshipModel, Field, MigrationPlan, Vector, VectorField
 from .schema import Schema, Registry
 from .stores import PropertyStore, InMemoryStore
 from .cassandra_store import CassandraStore, REVERSE_ID_TABLE
 from .graph_functions import VECTOR_SIMILARITIES
 from .engine import opencypher, OpenCypher, VerifyReport
 
-__all__ = ['opencypher', 'OpenCypher', 'Result', 'Node', 'Rel', 'Path', 'OpenCypherError', 'OpenCypherSyntaxError', 'PropertyStore', 'InMemoryStore', 'CassandraStore', 'Schema', 'Registry', 'new_id', 'norm_id', 'stable_id', 'parse', 'GraphLock', 'LockError', 'LockUpgradeError', 'LockTimeout', 'lock_of', 'ConsistencyError', 'QueryTimeout', 'VerifyReport', 'REVERSE_ID_TABLE', 'Models', 'VertexModel', 'EdgeModel', 'Field', 'MigrationPlan', 'ConstraintError', 'SchemaMigrationError', 'Vector', 'VectorField', 'VECTOR_SIMILARITIES']
+__all__ = ['opencypher', 'OpenCypher', 'Result', 'Node', 'Rel', 'Path', 'OpenCypherError', 'OpenCypherSyntaxError', 'PropertyStore', 'InMemoryStore', 'CassandraStore', 'Schema', 'Registry', 'new_id', 'norm_id', 'stable_id', 'parse', 'GraphLock', 'LockError', 'LockUpgradeError', 'LockTimeout', 'lock_of', 'ConsistencyError', 'QueryTimeout', 'VerifyReport', 'REVERSE_ID_TABLE', 'Models', 'NodeModel', 'RelationshipModel', 'Field', 'MigrationPlan', 'ConstraintError', 'SchemaMigrationError', 'Vector', 'VectorField', 'VECTOR_SIMILARITIES']

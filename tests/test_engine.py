@@ -19,7 +19,7 @@ from types import SimpleNamespace as NS
 import pytest
 from graph_tool import Graph
 import opencypher_graphtool as C
-from opencypher_graphtool import opencypher, Schema, InMemoryStore, OpenCypherError, OpenCypherSyntaxError, Node, Rel, Path, GraphLock, LockUpgradeError, LockTimeout, lock_of, ConsistencyError, VerifyReport, Models, VertexModel, EdgeModel, Field, ConstraintError, SchemaMigrationError, MigrationPlan
+from opencypher_graphtool import opencypher, Schema, InMemoryStore, OpenCypherError, OpenCypherSyntaxError, Node, Rel, Path, GraphLock, LockUpgradeError, LockTimeout, lock_of, ConsistencyError, VerifyReport, Models, NodeModel, RelationshipModel, Field, ConstraintError, SchemaMigrationError, MigrationPlan
 
 VT = ["Person", "City", "Movie", "Item"]
 ET = ["KNOWS", "LIVES_IN", "ACTED_IN", "LINK", "REL"]
@@ -61,10 +61,10 @@ class SlowStore(InMemoryStore):
 
 
 def fresh(indexed=("name",), schema_kw=None, store_cls=InMemoryStore, lock=True, cy_kw=None):
-    tables = {("vertex", t): {} for t in VT} | {("edge", t): {} for t in ET}
-    idx = {k: (set(indexed) if k[0] == "vertex" else set()) for k in tables}
+    tables = {("node", t): {} for t in VT} | {("relationship", t): {} for t in ET}
+    idx = {k: (set(indexed) if k[0] == "node" else set()) for k in tables}
     st = store_cls(tables, indexed=idx)
-    sc = Schema(vertex_labels=VT, vertex_types=VT, edge_types=ET, **(schema_kw or {}))
+    sc = Schema(node_labels=VT, node_types=VT, relationship_types=ET, **(schema_kw or {}))
     g = Graph()
     cy = opencypher(g, st, sc, lock=lock, **(cy_kw or {}))
     return NS(g=g, st=st, sc=sc, cy=cy, tables=tables)
@@ -162,7 +162,7 @@ def test_directions_and_hops():
 
 def test_relationship_uniqueness_and_joins():
     e = social()
-    # the triangle ann->bob->cat->ann: edges must not repeat within one MATCH
+    # the triangle ann->bob->cat->ann: relationships must not repeat within one MATCH
     n = e.cy.run("MATCH (a)-[r1:KNOWS]-(b)-[r2:KNOWS]-(c) WHERE a.name='Ann' RETURN count(*)").value()
     assert n == 3, n
     # two comma parts joined on a shared variable
@@ -437,14 +437,14 @@ def test_delete():
     assert one("MATCH (p:Person) RETURN count(*)").value() == 3
     assert one("MATCH (p:Person {name:'Ann'}) RETURN p").rows == []
     assert one("MATCH ()-[k:KNOWS]->() RETURN count(k)").value() == 2
-    # delete the edges first, then the node, in one statement
+    # delete the relationships first, then the node, in one statement
     one("MATCH (c:Person {name:'Cat'})-[r]-() DELETE r")
     one("MATCH (c:Person {name:'Cat'}) DELETE c")
     assert one("MATCH (p:Person) RETURN count(*)").value() == 2
     one("MATCH ()-[k:KNOWS]->() DELETE k")
     assert one("MATCH ()-[k:KNOWS]->() RETURN count(k)").value() == 0
     # rows in the store are gone, and tombstoned nodes never show up
-    assert not any(r.get("name") == "Ann" for r in e.tables[("vertex", "Person")].values())
+    assert not any(r.get("name") == "Ann" for r in e.tables[("node", "Person")].values())
     assert one("MATCH (n) RETURN count(n)").value() == 4                    # 2 persons + 2 cities
     # a path can be deleted
     one("CREATE (:Item {name:'p'})-[:LINK]->(:Item {name:'q'})")
@@ -456,7 +456,7 @@ def test_delete():
 
 def test_eager_writes():
     e = social()
-    # reads finish before writes: this must create exactly one new edge per existing KNOWS edge
+    # reads finish before writes: this must create exactly one new relationship per existing KNOWS relationship
     n0 = e.cy.run("MATCH ()-[k:KNOWS]->() RETURN count(k)").value()
     e.cy.run("MATCH (a)-[:KNOWS]->(b) CREATE (a)-[:REL]->(b)")
     assert e.cy.run("MATCH ()-[r:REL]->() RETURN count(r)").value() == n0
@@ -662,9 +662,9 @@ def _cass(id_type, indexed=True, allow_filtering=False):
             "e_knows": {"cols": {"id": id_type, "since": "int"}, "pk": "id", "indexed": []},
             "e_lives_in": {"cols": {"id": id_type}, "pk": "id", "indexed": []}}
     sess = FakeSession(spec)
-    namer = lambda kind, t: ("v_" if kind == "vertex" else "e_") + t.lower()
+    namer = lambda kind, t: ("v_" if kind == "node" else "e_") + t.lower()
     store = C.CassandraStore(sess, "ks", table_namer=namer, allow_filtering=allow_filtering)
-    schema = Schema(vertex_labels=["Person", "City"], vertex_types=["Person", "City"], edge_types=["KNOWS", "LIVES_IN"])
+    schema = Schema(node_labels=["Person", "City"], node_types=["Person", "City"], relationship_types=["KNOWS", "LIVES_IN"])
     graph = Graph()
     return opencypher(graph, store, schema), store, sess
 
@@ -786,9 +786,9 @@ def test_properties_functions_and_maps():
 def test_schema_registration_limits():
     e = fresh(schema_kw={"bits": 32})
     # labels are auto-registered; the stored masks are valid bit tests (no 33rd label)
-    tables = {("vertex", f"L{i}"): {} for i in range(33)}
+    tables = {("node", f"L{i}"): {} for i in range(33)}
     st = InMemoryStore(tables, indexed={k: set() for k in tables})
-    sc = Schema(vertex_labels=[], vertex_types=[], edge_types=["R"], bits=32)
+    sc = Schema(node_labels=[], node_types=[], relationship_types=["R"], bits=32)
     cy = opencypher(Graph(), st, sc)
     for i in range(32):
         cy.run(f"CREATE (:L{i} {{k: {i}}})")
@@ -1126,11 +1126,11 @@ def snapshot(e):
     alive = ~np_dropped(g)
     verts = sorted((sc.get_id(g, v), sc.label_names(g, v), sc.type_name(g, v))
                    for v in g.vertices() if alive[int(v)] and sc.get_id(g, v))
-    edges = sorted((sc.get_id(g, x), sc.type_name(g, x), sc.get_id(g, x.source()), sc.get_id(g, x.target()))
+    relationships = sorted((sc.get_id(g, x), sc.type_name(g, x), sc.get_id(g, x.source()), sc.get_id(g, x.target()))
                    for x in g.edges())
     tabs = {k: {i: dict(r) for i, r in v.items()} for k, v in e.tables.items()}
     isd = isinstance(sc._vidx, dict)
-    return {"v": verts, "e": edges, "vidx": dict(sc._vidx) if isd else None,
+    return {"v": verts, "e": relationships, "vidx": dict(sc._vidx) if isd else None,
             "eidx": sorted(sc._eidx) if isd else None, "tables": tabs,
             "pending": (dict(e.st._pending_w), set(e.st._pending_del))}
 
@@ -1162,7 +1162,7 @@ def test_atomic_create_rolls_back_when_store_is_down():
     assert e.cy.verify().ok
 
 
-def test_atomic_vertex_slots_are_reclaimed():
+def test_atomic_node_slots_are_reclaimed():
     e = flaky(); n0 = e.g.num_vertices()
     e.st.down = True
     for _ in range(3):
@@ -1204,7 +1204,7 @@ def test_atomic_delete_and_label_changes_roll_back():
     assert snapshot(e) == before
     assert col(e.cy.run("MATCH (p:Person) RETURN p.name ORDER BY p.name")) == names_before
     assert e.cy.run("MATCH (p:Admin) RETURN count(*)").value() == 1
-    assert e.cy.run("MATCH (:Person {name:'Ann'})-[r]-() RETURN count(r)").value() == 3   # edges are back
+    assert e.cy.run("MATCH (:Person {name:'Ann'})-[r]-() RETURN count(r)").value() == 3   # relationships are back
     assert not e.cy.verify().ok and e.st.unresolved        # the outage left (harmless) maybe-applied entries
     assert e.cy.repair()["after"].ok and e.st.unresolved == []
 
@@ -1242,7 +1242,7 @@ def test_incomplete_rollback_raises_consistency_error_and_repair_finishes_it():
     # ...and stays down during the compensation: graph is rolled back, the store has residue
     assert e.cy.run("MATCH (p:Person {name:'R1'}) RETURN count(*)").value() == 0
     assert len(e.st.unresolved) >= 1
-    assert any(k[0] == "vertex" and "R1" in [r.get("name") for r in v.values()] for k, v in e.tables.items())
+    assert any(k[0] == "node" and "R1" in [r.get("name") for r in v.values()] for k, v in e.tables.items())
     rep = e.cy.verify()
     assert not rep and rep.unresolved
     e.st.allow = None                                  # store is back
@@ -1260,18 +1260,18 @@ def test_store_level_rollback_after_midquery_flush():
     txn = _Txn(e.g, e.st)
     e.g.__dict__["_gt_txn"] = txn; e.st._txn = txn
     try:
-        from opencypher_graphtool.elements import _create_vertex, _set_props
-        v = _create_vertex(e.g, ("Person",), None)
+        from opencypher_graphtool.elements import _create_node, _set_props
+        v = _create_node(e.g, ("Person",), None)
         _set_props(e.g, v, {"name": "Mid"})
         e.st.flush()                                   # mid-query flush: row is now in the store
-        assert any(r.get("name") == "Mid" for r in e.tables[("vertex", "Person")].values())
+        assert any(r.get("name") == "Mid" for r in e.tables[("node", "Person")].values())
         assert txn.attempted
     finally:
         e.g.__dict__.pop("_gt_txn", None); e.st._txn = None
     for fn in reversed(txn.undo):
         fn()
     assert e.st.rollback_txn(txn) == []
-    assert not any(r.get("name") == "Mid" for r in e.tables[("vertex", "Person")].values())
+    assert not any(r.get("name") == "Mid" for r in e.tables[("node", "Person")].values())
     assert e.cy.verify().ok
 
 
@@ -1279,17 +1279,17 @@ def test_store_level_rollback_after_midquery_flush():
 def test_verify_clean_and_drift_detection():
     e = flaky()
     rep = e.cy.verify()
-    assert rep.ok and bool(rep) and rep.checked[("vertex", "Person")][0] == 4 and "consistent" in rep.summary()
+    assert rep.ok and bool(rep) and rep.checked[("node", "Person")][0] == 4 and "consistent" in rep.summary()
     # drift 1: a graph element lost its row (e.g. Cassandra restored from an older snapshot)
     ann = e.cy.run("MATCH (p:Person {name:'Ann'}) RETURN p.id").value()
-    del e.tables[("vertex", "Person")][ann]
+    del e.tables[("node", "Person")][ann]
     # drift 2: a stray row nobody points to (e.g. graph restored from an older file)
     stray = "11111111-1111-4111-8111-111111111111"
-    e.tables[("vertex", "Movie")][stray] = {"id": stray, "title": "Ghost"}
+    e.tables[("node", "Movie")][stray] = {"id": stray, "title": "Ghost"}
     rep = e.cy.verify()
     assert not rep.ok
-    assert rep.missing_rows == {("vertex", "Person"): [ann]}
-    assert rep.orphan_rows == {("vertex", "Movie"): [stray]}
+    assert rep.missing_rows == {("node", "Person"): [ann]}
+    assert rep.orphan_rows == {("node", "Movie"): [stray]}
     assert "missing rows" in rep.summary() and "orphan rows" in rep.summary()
     # restricting by type
     assert e.cy.verify(types=["City"]).ok
@@ -1300,9 +1300,9 @@ def test_repair_policies():
         e = flaky()
         ann = e.cy.run("MATCH (p:Person {name:'Ann'}) RETURN p.id").value()
         e.nrel = e.cy.run("MATCH (:Person {name:'Ann'})-[r]-() RETURN count(r)").value()
-        del e.tables[("vertex", "Person")][ann]
+        del e.tables[("node", "Person")][ann]
         stray = "11111111-1111-4111-8111-111111111111"
-        e.tables[("vertex", "Movie")][stray] = {"id": stray}
+        e.tables[("node", "Movie")][stray] = {"id": stray}
         return e, ann, stray
     # default: report only, nothing changes
     e, ann, stray = drifted(); snap = snapshot(e)
@@ -1312,7 +1312,7 @@ def test_repair_policies():
     e, ann, stray = drifted()
     out = e.cy.repair(missing="recreate", orphans="delete")
     assert out["rows_recreated"] == 1 and out["orphan_rows_deleted"] == 1 and out["after"].ok
-    assert stray not in e.tables[("vertex", "Movie")] and ann in e.tables[("vertex", "Person")]
+    assert stray not in e.tables[("node", "Movie")] and ann in e.tables[("node", "Person")]
     assert e.cy.run("MATCH (p:Person) RETURN count(*)").value() == 4          # graph untouched
     # tombstone: element and its relationships leave the graph
     e, ann, stray = drifted()
@@ -1321,23 +1321,23 @@ def test_repair_policies():
     out = e.cy.repair(missing="tombstone")
     assert out["graph_elements_removed"] == 1 + nrel and out["after"].missing_rows == {}
     assert e.cy.run("MATCH (p:Person) RETURN count(*)").value() == 3
-    assert list(out["after"].orphan_rows) == [("vertex", "Movie")]             # orphans not requested
+    assert list(out["after"].orphan_rows) == [("node", "Movie")]             # orphans not requested
     raises(ValueError, lambda: e.cy.repair(missing="nope"))
     raises(ValueError, lambda: e.cy.repair(orphans="nope"))
 
 
-def test_verify_missing_edge_row_and_table():
+def test_verify_missing_relationship_row_and_table():
     e = flaky()
-    eid = next(iter(e.tables[("edge", "KNOWS")]))
-    del e.tables[("edge", "KNOWS")][eid]
+    eid = next(iter(e.tables[("relationship", "KNOWS")]))
+    del e.tables[("relationship", "KNOWS")][eid]
     rep = e.cy.verify()
-    assert rep.missing_rows == {("edge", "KNOWS"): [eid]}
+    assert rep.missing_rows == {("relationship", "KNOWS"): [eid]}
     e.cy.repair(missing="tombstone")
     assert e.cy.verify().ok
     # a graph type whose table does not exist
     e2 = flaky()
-    del e2.tables[("vertex", "City")]
-    assert ("vertex", "City") in e2.cy.verify().missing_tables
+    del e2.tables[("node", "City")]
+    assert ("node", "City") in e2.cy.verify().missing_tables
 
 
 def test_verify_async_safe_under_lock_and_after_reload():
@@ -1360,11 +1360,11 @@ def test_merge_uses_stable_ids_and_is_idempotent_across_a_lost_graph():
     tables = e1.tables
     st = InMemoryStore(tables, indexed=e1.st.indexed)
     g2 = Graph()
-    cy2 = opencypher(g2, st, Schema(vertex_labels=VT, vertex_types=VT, edge_types=ET))
+    cy2 = opencypher(g2, st, Schema(node_labels=VT, node_types=VT, relationship_types=ET))
     cy2.run("MERGE (a:Person {name:'Eve'}) MERGE (b:Person {name:'Fay'}) MERGE (a)-[:KNOWS {since:2020}]->(b)")
     assert sorted(col(cy2.run("MATCH (p:Person) RETURN p.id"))) == ids1          # same ids
     assert col(cy2.run("MATCH ()-[r:KNOWS]->() RETURN r.id")) == rid1
-    assert len(tables[("vertex", "Person")]) == 2 and len(tables[("edge", "KNOWS")]) == 1   # no duplicate rows
+    assert len(tables[("node", "Person")]) == 2 and len(tables[("relationship", "KNOWS")]) == 1   # no duplicate rows
     assert cy2.verify().ok
     # CREATE still produces random ids; a node with another property set is a different node
     e1.cy.run("CREATE (:Person {name:'Eve'})")
@@ -1381,7 +1381,7 @@ def test_merge_stable_id_collision_falls_back_to_random():
     off.cy.run("MERGE (:Person {name:'Hal'})")
     from opencypher_graphtool import stable_id
     assert off.cy.run("MATCH (p:Person) RETURN p.id").value() != stable_id(
-        "opencypher-merge", "vertex", "Person", repr(sorted([("name", repr("Hal"))])))
+        "opencypher-merge", "node", "Person", repr(sorted([("name", repr("Hal"))])))
 
 
 def test_failed_merge_then_retry_creates_exactly_one():
@@ -1445,7 +1445,7 @@ def restart(e, **kw):
     """Simulate a process restart on the same graph + store: new Schema/engine, empty cache."""
     st = e.st
     st.clear_cache(); st.calls.clear() if hasattr(st, "calls") else None
-    sc = Schema(vertex_labels=VT, vertex_types=VT, edge_types=ET)
+    sc = Schema(node_labels=VT, node_types=VT, relationship_types=ET)
     cy = opencypher(e.g, st, sc, **kw)
     e.sc, e.cy = sc, cy
     return e
@@ -1458,7 +1458,7 @@ def test_reverse_table_is_populated_and_queries_work():
     nv = sum(1 for v in g.vertices() if sc.get_id(g, v))
     ne = g.num_edges()
     assert len(rev_rows(e)) == nv + ne
-    for v in g.vertices():                               # every vertex row points at its own index
+    for v in g.vertices():                               # every node row points at its own index
         r = e.tables[REV][sc.get_id(g, v)]
         assert r["kind"] == "v" and r["idx"] == int(v) and "src" not in r
     for x in g.edges():
@@ -1482,7 +1482,7 @@ def test_startup_does_not_scan_the_graph():
     e = fresh(store_cls=CountingStore)                   # memory-mode engine, 200 people
     e.cy.run("UNWIND range(1, 200) AS i CREATE (:Person {name: 'p' + toString(i)})")
     n = e.g.num_vertices()
-    mk = lambda **k: opencypher(e.g, e.st, Schema(vertex_labels=VT, vertex_types=VT, edge_types=ET), **k)
+    mk = lambda **k: opencypher(e.g, e.st, Schema(node_labels=VT, node_types=VT, relationship_types=ET), **k)
     if PM is not None:
         r0 = PM.reads; mk(); mem_reads = PM.reads - r0
         assert mem_reads >= n                            # the dict build touches every element
@@ -1527,7 +1527,7 @@ def test_reverse_rows_follow_atomic_writes():
     e.st.fail_next = "ids"
     raises(IOError, lambda: e.cy.run("CREATE (:Person {name:'Late'})"))
     assert e.cy.run("MATCH (p:Person {name:'Late'}) RETURN count(*)").value() == 0
-    assert not any(r.get("name") == "Late" for r in e.tables[("vertex", "Person")].values())
+    assert not any(r.get("name") == "Late" for r in e.tables[("node", "Person")].values())
     assert set(rev_rows(e)) == set(before["tables"][REV]) - {MARK}
     assert e.cy.verify().ok
     # delete: rows disappear; a failed delete puts them back
@@ -1541,22 +1541,22 @@ def test_reverse_rows_follow_atomic_writes():
     assert len(rev_rows(e)) == n + 1 - 4 and e.cy.verify().ok     # Ann + her 3 relationships
 
 
-def test_reverse_rows_survive_restart_and_edges_resolve():
+def test_reverse_rows_survive_restart_and_relationships_resolve():
     e = rev_env()
     ids = {}
     for v in e.g.vertices():
         ids[e.sc.get_id(e.g, v)] = int(v)
-    edge_ids = {e.sc.get_id(e.g, x): (int(x.source()), int(x.target())) for x in e.g.edges()}
+    relationship_ids = {e.sc.get_id(e.g, x): (int(x.source()), int(x.target())) for x in e.g.edges()}
     e.cy.run("MATCH (a:Person {name:'Ann'}), (b:Person {name:'Bob'}) CREATE (a)-[:LINK]->(b), (a)-[:LINK]->(b)")
     restart(e, id_index="store")
     for i, idx in ids.items():
         assert e.sc._vidx.get(i) == idx
-    for i, (s_, t_) in edge_ids.items():
-        x = e.sc.edge_by_id(i)
+    for i, (s_, t_) in relationship_ids.items():
+        x = e.sc.relationship_by_id(i)
         assert (int(x.source()), int(x.target())) == (s_, t_) and e.sc.get_id(e.g, x) == i
     links = col(e.cy.run("MATCH ()-[r:LINK]->() RETURN r.id"))
-    assert len(links) == 2 and links[0] != links[1]      # parallel edges are told apart
-    assert {e.sc.get_id(e.g, e.sc.edge_by_id(i)) for i in links} == set(links)
+    assert len(links) == 2 and links[0] != links[1]      # parallel relationships are told apart
+    assert {e.sc.get_id(e.g, e.sc.relationship_by_id(i)) for i in links} == set(links)
     assert e.sc._vidx.get("11111111-1111-4111-8111-111111111111") is None      # unknown id: a clean miss
 
 
@@ -1630,34 +1630,34 @@ def test_reverse_table_on_cassandra_fake_session():
         _install_fake_cassandra()
         spec = {"v_person": {"cols": {"id": idt, "name": "text", "age": "int"}, "pk": "id", "indexed": ["name"]},
                 "e_knows": {"cols": {"id": idt, "since": "int"}, "pk": "id", "indexed": []},
-                "reverse_vertex_ids": {"cols": {"id": idt, "kind": "text", "idx": "bigint", "src": "bigint",
+                "reverse_node_ids": {"cols": {"id": idt, "kind": "text", "idx": "bigint", "src": "bigint",
                                                 "dst": "bigint"}, "pk": "id", "indexed": []}}
         sess = FakeSession(spec)
-        namer = lambda kind, t: ("v_" if kind == "vertex" else "e_") + t.lower()
+        namer = lambda kind, t: ("v_" if kind == "node" else "e_") + t.lower()
         store = C.CassandraStore(sess, "ks", table_namer=namer)
-        assert "reverse_vertex_ids" in store.reverse_table_ddl(idt) and "idx bigint" in store.reverse_table_ddl()
+        assert "reverse_node_ids" in store.reverse_table_ddl(idt) and "idx bigint" in store.reverse_table_ddl()
         store.create_reverse_table(idt)
-        sc = Schema(vertex_labels=["Person"], vertex_types=["Person"], edge_types=["KNOWS"])
+        sc = Schema(node_labels=["Person"], node_types=["Person"], relationship_types=["KNOWS"])
         g = Graph()
         cy = opencypher(g, store, sc, id_index="store")
         cy.run("CREATE (a:Person {name:'Ann', age:30})-[:KNOWS {since:2010}]->(b:Person {name:'Bob', age:41})")
-        rows = sess.rows["reverse_vertex_ids"]
-        assert MARK in rows and len(rows) == 4                                   # 2 vertices + 1 edge + marker
+        rows = sess.rows["reverse_node_ids"]
+        assert MARK in rows and len(rows) == 4                                   # 2 nodes + 1 relationship + marker
         assert sorted(r["kind"] for k, r in rows.items() if k != MARK) == ["e", "v", "v"]
         # restart: new schema, empty cache -> found through the table, one CQL read per id
         store.clear_cache(); sess.log.clear()
-        sc2 = Schema(vertex_labels=["Person"], vertex_types=["Person"], edge_types=["KNOWS"])
+        sc2 = Schema(node_labels=["Person"], node_types=["Person"], relationship_types=["KNOWS"])
         cy2 = opencypher(g, store, sc2, id_index="store")
         assert cy2.run("MATCH (a:Person {name:'Ann'})-[:KNOWS]->(b) RETURN b.name").value() == "Bob"
-        assert any('FROM "ks"."reverse_vertex_ids"' in c for c in sess.log)
+        assert any('FROM "ks"."reverse_node_ids"' in c for c in sess.log)
         # delete removes the reverse rows; verify scans every table incl. the reverse one
         assert cy2.verify().ok
         cy2.run("MATCH (p:Person {name:'Ann'}) DETACH DELETE p")
-        assert len(sess.rows["reverse_vertex_ids"]) == 2 and cy2.verify().ok       # Bob + marker
+        assert len(sess.rows["reverse_node_ids"]) == 2 and cy2.verify().ok       # Bob + marker
         stray = "44444444-4444-4444-8444-444444444444"
-        sess.rows["reverse_vertex_ids"][stray] = {"id": stray, "kind": "v", "idx": 5}
+        sess.rows["reverse_node_ids"][stray] = {"id": stray, "kind": "v", "idx": 5}
         assert cy2.verify().reverse_orphans == [stray]
-        assert cy2.repair(reverse="rebuild")["after"].ok and stray not in sess.rows["reverse_vertex_ids"]
+        assert cy2.repair(reverse="rebuild")["after"].ok and stray not in sess.rows["reverse_node_ids"]
 
 
 
@@ -1674,7 +1674,7 @@ class Status(str, _enum.Enum):
     GONE = "gone"
 
 
-class MPerson(VertexModel):
+class MPerson(NodeModel):
     class Meta:
         type = "Person"
     name: str = Field(index=True)
@@ -1690,18 +1690,18 @@ class MPerson(VertexModel):
         return v.lower() if v else v
 
 
-class MMovie(VertexModel, type="Movie", table="movies"):
+class MMovie(NodeModel, type="Movie", table="movies"):
     title: str = Field(index=True)
     year: int | None = None
 
 
-class MKnows(EdgeModel):
+class MKnows(RelationshipModel):
     class Meta:
         type = "KNOWS"
-    since: int = Field(ge=1900)                 # REQUIRED on every KNOWS edge
+    since: int = Field(ge=1900)                 # REQUIRED on every KNOWS relationship
 
 
-class MActed(EdgeModel):
+class MActed(RelationshipModel):
     class Meta:
         type = "ACTED_IN"
     role: str | None = None
@@ -1722,29 +1722,29 @@ def mem_models(**kw):
 def test_models_drive_the_schema_and_table_names():
     m = mmodels()
     sc = m.schema()
-    assert sc.reg("vertex", "type").all_names() == ["Person", "Movie"]
-    assert sc.reg("edge", "type").all_names() == ["KNOWS", "ACTED_IN"]
+    assert sc.reg("node", "type").all_names() == ["Person", "Movie"]
+    assert sc.reg("relationship", "type").all_names() == ["KNOWS", "ACTED_IN"]
     assert sc.auto_register is False
-    assert [m.table_namer("vertex", "Person"), m.table_namer("vertex", "Movie"),
-            m.table_namer("edge", "ACTED_IN")] == ["person", "movies", "acted_in"]
-    raises(KeyError, lambda: m.table_namer("vertex", "Nope"), "no model")
+    assert [m.table_namer("node", "Person"), m.table_namer("node", "Movie"),
+            m.table_namer("relationship", "ACTED_IN")] == ["person", "movies", "acted_in"]
+    raises(KeyError, lambda: m.table_namer("node", "Nope"), "no model")
     assert m.pick_type(["Admin", "Movie", "Person"]) == "Movie" and m.pick_type(["Admin"]) is None
 
-    class Dup(VertexModel):
+    class Dup(NodeModel):
         class Meta:
             type = "Person"
     raises(ValueError, lambda: Models([MPerson, Dup]), "two models")
 
-    class SameTable(VertexModel, type="Other", table="person"):
+    class SameTable(NodeModel, type="Other", table="person"):
         pass
     raises(ValueError, lambda: Models([MPerson, SameTable]), "table 'person'")
 
-    class Bad(VertexModel):
+    class Bad(NodeModel):
         id: str
     raises(ValueError, lambda: Models([Bad]), "reserved")
-    raises(TypeError, lambda: Models([int]), "not a VertexModel")
+    raises(TypeError, lambda: Models([int]), "not a NodeModel")
 
-    class Weird(VertexModel):
+    class Weird(NodeModel):
         x: dict[str, list[int]]
     raises(TypeError, lambda: Models([Weird]), "nested collections")
 
@@ -1761,7 +1761,7 @@ def test_models_generate_ddl_with_type_mapping():
     assert any('"since" bigint' in s and '"ks"."knows"' in s for s in ddl)
     assert mmodels().ddl("ks", id_type="text")[0].count('"id" text PRIMARY KEY') == 1
 
-    class Many(VertexModel):
+    class Many(NodeModel):
         a: bool
         b: float
         c: _uuid_t
@@ -1778,7 +1778,7 @@ def test_models_generate_ddl_with_type_mapping():
                  '"g" map<text, bigint>', '"h" text', '"i" time', '"j" varchar'):
         assert part in ddl, part
     assert 'VALUES("k")' in Models([Many]).ddl("ks")[-1]               # collection index
-    class MapIdx(VertexModel):
+    class MapIdx(NodeModel):
         m: dict[str, int] = Field(default_factory=dict, index=True)
     raises(ValueError, lambda: Models([MapIdx]).ddl("ks"), "indexing a map")
 
@@ -1792,7 +1792,7 @@ def test_models_validate_values_when_set():
     cy.run("CREATE (:Person {name:'Ann', age:'30', email:'ANN@X.COM', status:'gone'})")
     r = cy.run("MATCH (p:Person {name:'Ann'}) RETURN p.age, p.email, p.status, p.tags").single()
     assert r == {"p.age": 30, "p.email": "ann@x.com", "p.status": "gone", "p.tags": []}   # coerced, validator ran, default filled
-    assert isinstance(next(iter(e.tables[("vertex", "Person")].values()))["age"], int)
+    assert isinstance(next(iter(e.tables[("node", "Person")].values()))["age"], int)
     raises(OpenCypherError, lambda: cy.run("CREATE (:Person {name:'X', age:'abc'})"), "age")
     raises(OpenCypherError, lambda: cy.run("CREATE (:Person {name:'X', age:-5})"), "age")
     raises(OpenCypherError, lambda: cy.run("CREATE (:Person {name:'X', status:'weird'})"), "status")
@@ -1808,12 +1808,12 @@ def test_models_strict_commit_required_fields_and_rollback():
     e = mem_models(); cy = e.cy
     cy.run("CREATE (a:Person {name:'A'}), (b:Person {name:'B'})")
     n_before = cy.run("MATCH (p:Person) RETURN count(*)").value()
-    # KNOWS.since is required: the edge is created without it -> the WHOLE query is rolled back
+    # KNOWS.since is required: the relationship is created without it -> the WHOLE query is rolled back
     raises(ConstraintError, lambda: cy.run(
         "MATCH (a:Person {name:'A'}), (b:Person {name:'B'}) CREATE (a)-[:KNOWS]->(b), (:Person {name:'ghost'})"), "since")
     assert cy.run("MATCH ()-[r:KNOWS]->() RETURN count(r)").value() == 0
     assert cy.run("MATCH (p:Person) RETURN count(*)").value() == n_before          # the ghost is gone too
-    assert not e.tables[("edge", "KNOWS")] and cy.verify().ok
+    assert not e.tables[("relationship", "KNOWS")] and cy.verify().ok
     # a name is required on Person: nothing sets it
     raises(ConstraintError, lambda: cy.run("CREATE (:Person {age: 3})"), "name")
     # required value supplied by a LATER clause of the same query: fine (checked only at commit)
@@ -1827,7 +1827,7 @@ def test_models_strict_commit_required_fields_and_rollback():
     raises(ConstraintError, lambda: cy.run("MATCH ()-[r:KNOWS]->() SET r.since = null"), "since")
     assert cy.run("MATCH (p:Person {name:'late'}) RETURN count(*)").value() == 1
     # failing validator on an existing row, written by another query: still validated as a whole row
-    e.tables[("vertex", "Person")][next(iter(e.tables[("vertex", "Person")]))]["age"] = -1   # drifted data
+    e.tables[("node", "Person")][next(iter(e.tables[("node", "Person")]))]["age"] = -1   # drifted data
     e.st.clear_cache()
     raises(ConstraintError, lambda: cy.run("MATCH (p:Person) WHERE p.age = -1 SET p.email = 'a@b.c'"), "age")
     assert cy.verify().ok
@@ -1836,14 +1836,14 @@ def test_models_strict_commit_required_fields_and_rollback():
 def test_models_defaults_validators_and_model_validator():
     e = mem_models(); cy = e.cy
     cy.run("CREATE (:Person {name:'Dee'})")
-    row = next(iter(e.tables[("vertex", "Person")].values()))
+    row = next(iter(e.tables[("node", "Person")].values()))
     assert row["status"] == "active" and row["tags"] == []              # defaults WRITTEN on create
     assert "age" not in row and "email" not in row                      # None defaults are not
     cy.run("MATCH (p:Person {name:'Dee'}) SET p.status = 'gone'")
     cy.run("CREATE (:Person {name:'Eve'})")                              # a new row does not touch Dee
-    assert [r["status"] for r in e.tables[("vertex", "Person")].values() if r["name"] == "Dee"] == ["gone"]
+    assert [r["status"] for r in e.tables[("node", "Person")].values() if r["name"] == "Dee"] == ["gone"]
 
-    class Span(VertexModel):
+    class Span(NodeModel):
         lo: int
         hi: int
 
@@ -1858,11 +1858,11 @@ def test_models_defaults_validators_and_model_validator():
     c2.run("CREATE (:Span {lo: 1, hi: 5})")
     raises(ConstraintError, lambda: c2.run("CREATE (:Span {lo: 9, hi: 5})"), "lo must not exceed hi")
     c2.run("CREATE (s:Span {lo: 1, hi: 5}) SET s.lo = 2")
-    assert len(tables[("vertex", "Span")]) == 2
+    assert len(tables[("node", "Span")]) == 2
 
 
 def test_models_multi_label_picks_the_model_type():
-    class Tagged(VertexModel, type="Tagged", labels=["Special", "Archived"]):
+    class Tagged(NodeModel, type="Tagged", labels=["Special", "Archived"]):
         n: int | None = None
     c = opencypher(Graph(), InMemoryStore({}), models=Models([MPerson, Tagged]))
     c.run("CREATE (:Special:Tagged {n: 1})")                                   # type = the label that has a model
@@ -1872,8 +1872,8 @@ def test_models_multi_label_picks_the_model_type():
     raises(OpenCypherError, lambda: c.run("CREATE (:Unknown {x: 1})"))             # no model, auto_register off
 
 
-def test_models_edges_indexes_and_search_pushdown():
-    class Hub(VertexModel):
+def test_models_relationships_indexes_and_search_pushdown():
+    class Hub(NodeModel):
         code: str = Field(index=True)
         note: str | None = None
     tables, g = {}, Graph()
@@ -1883,24 +1883,24 @@ def test_models_edges_indexes_and_search_pushdown():
     st.clear_cache(); st.searches = 0
     assert c.run("MATCH (h:Hub {code:'c7'}) RETURN h.note").value() == "n"
     assert st.searches == 1                                                    # index=True => searchable
-    assert st.indexed[("vertex", "Hub")] == {"code"}
+    assert st.indexed[("node", "Hub")] == {"code"}
 
 
 def test_models_bit_map_is_stable_when_models_change_order():
     e = mem_models()
     e.cy.run("CREATE (:Person {name:'A'}), (:Movie {title:'M'})")
-    bits = {n: e.sc.reg("vertex", "type")._pos[n] for n in ("Person", "Movie")}
-    class Extra(VertexModel, type="Extra"):
+    bits = {n: e.sc.reg("node", "type")._pos[n] for n in ("Person", "Movie")}
+    class Extra(NodeModel, type="Extra"):
         pass
     # a "restart": the process forgets its schema; reorder + add a model; the schema SAVED in the graph decides the bits
     C.schema._SCHEMAS.pop(id(e.g), None)
-    assert Models([Extra, MMovie, MPerson]).schema().reg("vertex", "type")._pos["Extra"] == 0     # a fresh schema would reshuffle
+    assert Models([Extra, MMovie, MPerson]).schema().reg("node", "type")._pos["Extra"] == 0     # a fresh schema would reshuffle
     st2 = InMemoryStore(e.tables)
     c2 = opencypher(e.g, st2, models=Models([Extra, MMovie, MPerson, MKnows, MActed]))
-    reg = c2.schema.reg("vertex", "type")
+    reg = c2.schema.reg("node", "type")
     assert {n: reg._pos[n] for n in ("Person", "Movie")} == bits and reg._pos["Extra"] not in bits.values()
     assert c2.run("MATCH (p:Person) RETURN p.name").value() == "A" and c2.run("MATCH (m:Movie) RETURN m.title").value() == "M"
-    assert Schema.from_graph(e.g).reg("vertex", "type")._pos["Extra"] == reg._pos["Extra"]    # attached automatically
+    assert Schema.from_graph(e.g).reg("node", "type")._pos["Extra"] == reg._pos["Extra"]    # attached automatically
 
 
 def test_models_atomic_false_validates_values_but_not_required_fields():
@@ -2001,7 +2001,7 @@ def test_models_create_tables_and_indexes_automatically():
 
 def test_models_alter_tables_for_new_fields_and_indexes():
     cy, store, sess = _cass_models()
-    class MPerson2(VertexModel, type="Person", table="person"):
+    class MPerson2(NodeModel, type="Person", table="person"):
         name: str = Field(index=True)
         age: int | None = None
         email: str | None = Field(default=None, index=True)       # existing column, NEW index
@@ -2022,7 +2022,7 @@ def test_models_alter_tables_for_new_fields_and_indexes():
     cy2.run("CREATE (:Person {name:'Zed', nickname:'Z', email:'a@b.c'})")
     assert not m2.plan(store)                                       # now in line
     # a model that DROPS a field leaves the column alone (and says so)
-    class Slim(VertexModel, type="Person", table="person"):
+    class Slim(NodeModel, type="Person", table="person"):
         name: str = Field(index=True)
     import warnings
     with warnings.catch_warnings(record=True) as w:
@@ -2034,7 +2034,7 @@ def test_models_alter_tables_for_new_fields_and_indexes():
 
 def test_models_type_change_blocks_the_migration_and_changes_nothing():
     cy, store, sess = _cass_models()
-    class Changed(VertexModel, type="Person", table="person"):
+    class Changed(NodeModel, type="Person", table="person"):
         name: str = Field(index=True)
         age: str | None = None                                       # was bigint
         brand_new: int | None = None
@@ -2058,9 +2058,9 @@ def test_models_migration_errors_and_reverse_table():
     sess = DdlSession()
     store = C.CassandraStore(sess, "ks", id_type="text")
     cy = opencypher(Graph(), store, models=mmodels(), id_index="store")                # reverse table is created too
-    assert sess.spec["reverse_vertex_ids"]["cols"]["idx"] == "bigint" and sess.spec["person"]["cols"]["id"] == "text"
+    assert sess.spec["reverse_node_ids"]["cols"]["idx"] == "bigint" and sess.spec["person"]["cols"]["id"] == "text"
     cy.run("CREATE (:Person {name:'R'})")
-    assert len(sess.rows["reverse_vertex_ids"]) == 2 and cy.verify().ok
+    assert len(sess.rows["reverse_node_ids"]) == 2 and cy.verify().ok
     raises(ValueError, lambda: opencypher(Graph(), None, models=mmodels()), "property store")
 
 
@@ -2076,12 +2076,12 @@ def test_models_on_cassandra_roundtrip_with_validation_and_rollback():
 
 
 # =========================================================================== #
-# M. vertices: many labels, ONE type.  edges: ONE type, NO labels
+# M. nodes: many labels, ONE type.  relationships: ONE type, NO labels
 # =========================================================================== #
-def test_edges_have_one_type_and_no_labels():
-    raises(ValueError, lambda: Schema(vertex_types=["A"], edge_types=["R"], edge_labels=["R"]), "no labels")
+def test_relationships_have_one_type_and_no_labels():
+    raises(ValueError, lambda: Schema(node_types=["A"], relationship_types=["R"], relationship_labels=["R"]), "no labels")
     e = social(); g, sc = e.g, e.sc
-    assert "labels" in g.vp and "labels" not in g.ep                 # no label map exists for edges
+    assert "labels" in g.vp and "labels" not in g.ep                 # no label map exists for relationships
     assert "type" in g.ep and g.num_edges() > 0
     for x in g.edges():                                              # exactly one bit, the relationship type
         assert bin(sc.type_mask(g, x)).count("1") == 1
@@ -2094,21 +2094,21 @@ def test_edges_have_one_type_and_no_labels():
     assert set(col(e.cy.run("CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType"))) == set(ET)
     raises(OpenCypherError, lambda: e.cy.run("MATCH ()-[r]->() RETURN labels(r)"), "needs a node")
     raises(OpenCypherError, lambda: e.cy.run("CREATE (:Person {name:'q'})-[:KNOWS|LIVES_IN]->(:City {name:'z'})"), "exactly one")
-    raises(ValueError, lambda: e.sc.prepare("edge", ("KNOWS",), "KNOWS", None), "no labels")
+    raises(ValueError, lambda: e.sc.prepare("relationship", ("KNOWS",), "KNOWS", None), "no labels")
     r = e.cy.run("MATCH ()-[r:KNOWS]->() RETURN r LIMIT 1").single()["r"]
     assert r.type == "KNOWS"
-    # an old saved schema that still lists edge labels loads, and is written back without them
+    # an old saved schema that still lists relationship labels loads, and is written back without them
     old = {"bits": 64, "auto_register": True, "label_map": "labels", "type_map": "type", "id_map": "uuid",
-           "vertex_labels": {"P": 0}, "edge_labels": {"R": 0}, "vertex_types": {"P": 0}, "edge_types": {"R": 0}}
+           "node_labels": {"P": 0}, "relationship_labels": {"R": 0}, "node_types": {"P": 0}, "relationship_types": {"R": 0}}
     sc2 = Schema.from_dict(old)
-    assert "edge_labels" not in sc2.to_dict() and sc2.reg("edge", "type").all_names() == ["R"]
-    # models: an edge model cannot carry labels
-    class Bad(EdgeModel, type="X", labels=["L"]):
+    assert "relationship_labels" not in sc2.to_dict() and sc2.reg("relationship", "type").all_names() == ["R"]
+    # models: a relationship model cannot carry labels
+    class Bad(RelationshipModel, type="X", labels=["L"]):
         pass
     raises(ValueError, lambda: Models([Bad]), "no labels")
 
 
-def test_vertices_have_many_labels_and_one_type():
+def test_nodes_have_many_labels_and_one_type():
     e = fresh(); cy = e.cy; g, sc = e.g, e.sc
     cy.run("CREATE (:Person:Admin:Staff {name:'Ann'})")
     v = next(v for v in g.vertices() if sc.get_id(g, v))
@@ -2116,7 +2116,7 @@ def test_vertices_have_many_labels_and_one_type():
     assert sc.type_name(g, v) == "Person" and bin(sc.type_mask(g, v)).count("1") == 1   # exactly one type
     assert cy.run("MATCH (p:Admin:Staff) RETURN p.name").value() == "Ann"       # all-of label match
     assert sorted(cy.run("MATCH (p {name:'Ann'}) RETURN labels(p)").value()) == ["Admin", "Person", "Staff"]
-    assert [r["name"] for r in e.tables[("vertex", "Person")].values()] == ["Ann"]    # the type decides the table
+    assert [r["name"] for r in e.tables[("node", "Person")].values()] == ["Ann"]    # the type decides the table
     # labels come and go; the type (and so the table / properties) never changes
     cy.run("MATCH (p:Person {name:'Ann'}) SET p:City REMOVE p:Person")
     assert sorted(sc.label_names(g, v)) == ["Admin", "City", "Staff"]
@@ -2125,7 +2125,7 @@ def test_vertices_have_many_labels_and_one_type():
     assert cy.run("MATCH (p) WHERE p.type = 'Person' RETURN count(*)").value() == 1   # ... but its TYPE is
     assert cy.verify().ok
     # with models: the type is the first label that has a model, extra labels are free
-    class Tagged(VertexModel, type="Tagged", labels=["Special", "Archived"]):
+    class Tagged(NodeModel, type="Tagged", labels=["Special", "Archived"]):
         n: int | None = None
     c = opencypher(Graph(), InMemoryStore({}), models=Models([MPerson, Tagged]))
     c.run("CREATE (:Special:Archived:Tagged {n: 1})")
@@ -2165,7 +2165,7 @@ def test_integer_arithmetic_overflows_at_64_bits():
 
 
 def test_a_map_is_not_a_property_value_except_in_a_map_field():
-    class Tagged(VertexModel):
+    class Tagged(NodeModel):
         class Meta:
             type = "Tagged"
         name: str = Field(index=True)

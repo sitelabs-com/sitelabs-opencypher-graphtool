@@ -26,7 +26,7 @@ from cassandra import ConsistencyLevel
 from graph_tool import Graph
 
 import opencypher_graphtool as C
-from opencypher_graphtool import CassandraStore, Field, Models, Vector, VectorField, VertexModel, opencypher
+from opencypher_graphtool import CassandraStore, Field, Models, Vector, VectorField, NodeModel, opencypher
 
 pytestmark = pytest.mark.integration
 
@@ -34,7 +34,7 @@ DIM, N, K, QUERIES = 32, 2000, 10, 20
 KINDS = ["paper", "note", "talk", "post"]
 
 
-class VDoc(VertexModel):
+class VDoc(NodeModel):
     class Meta:
         type = "VDoc"
     title: str = Field(index=True)
@@ -120,7 +120,7 @@ def test_old_style_indexes_are_reported_and_a_changed_similarity_blocked(loaded,
     session.execute(f'CREATE INDEX legacy_title ON "{keyspace}".legacy_doc (title)')       # not SAI
     session.cluster.refresh_schema_metadata()
 
-    class LegacyDoc(VertexModel):
+    class LegacyDoc(NodeModel):
         class Meta:
             type = "LegacyDoc"
             table = "legacy_doc"
@@ -128,7 +128,7 @@ def test_old_style_indexes_are_reported_and_a_changed_similarity_blocked(loaded,
     p = Models([LegacyDoc]).plan(store)
     assert p.statements == [] and len(p.warnings) == 1 and "not SAI" in p.warnings[0]
 
-    class VDocEuc(VertexModel):                    # the same table, cosine field now said to be euclidean
+    class VDocEuc(NodeModel):                    # the same table, cosine field now said to be euclidean
         class Meta:
             type = "VDoc"
             table = "v_doc"

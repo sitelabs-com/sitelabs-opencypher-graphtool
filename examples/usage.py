@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from opencypher_graphtool import opencypher, CassandraStore, Models, VertexModel, EdgeModel, Field
+from opencypher_graphtool import opencypher, CassandraStore, Models, NodeModel, RelationshipModel, Field
 
-class Person(VertexModel):
+class Person(NodeModel):
     class Meta:
-        type = "Person"                       # or: class Person(VertexModel, table="people")
+        type = "Person"                       # or: class Person(NodeModel, table="people")
     name: str = Field(index=True)             # becomes a Cassandra secondary index
     age: int | None = Field(default=None, ge=0)
     status: Status = Status.ACTIVE            # defaults are written when a node is created
 
-class Knows(EdgeModel):
+class Knows(RelationshipModel):
     class Meta:
         type = "KNOWS"
-    since: int = Field(ge=1900)               # required on every KNOWS edge
+    since: int = Field(ge=1900)               # required on every KNOWS relationship
 
 store = CassandraStore(session, "mykeyspace")
 cy = opencypher(graph, store, models=Models([Person, Knows]))     # no Schema, no table_namer

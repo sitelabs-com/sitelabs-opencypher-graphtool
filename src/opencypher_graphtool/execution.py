@@ -384,7 +384,7 @@ class _Run:
         tn, id_ = sc.type_name(g, el), sc.get_id(g, el)
         if not tn or id_ is None:
             return {}
-        row = store.row("vertex" if isinstance(el, Vertex) else "edge", tn, id_)
+        row = store.row("node" if isinstance(el, Vertex) else "relationship", tn, id_)
         return {k: v for k, v in row.items()
                 if v is not None and k not in CORE_KEYS and k != store.id_column}
 

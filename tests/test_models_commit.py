@@ -18,10 +18,10 @@ import pytest
 from graph_tool import Graph
 from pydantic import field_validator
 
-from opencypher_graphtool import ConstraintError, Field, InMemoryStore, Models, VertexModel, opencypher
+from opencypher_graphtool import ConstraintError, Field, InMemoryStore, Models, NodeModel, opencypher
 
 
-class Person(VertexModel):
+class Person(NodeModel):
     class Meta:
         type = "Person"
     name: str = Field(index=True)
@@ -43,7 +43,7 @@ def make():
 
 def rows(store):
     return sorted((r.get("name"), r.get("address"), r.get("status"))
-                  for r in store.tables[("vertex", "Person")].values())
+                  for r in store.tables[("node", "Person")].values())
 
 
 def test_multi_row_merge_then_set_keeps_the_merged_properties():
