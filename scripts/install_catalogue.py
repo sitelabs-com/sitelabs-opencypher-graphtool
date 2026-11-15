@@ -15,7 +15,7 @@
 """Copy docs/query-catalogue.md into a project that uses the engine, as it is at the tag the
 project pins (its requirements.txt), so the project documents the openCypher it actually runs.
 
-    python scripts/install_catalogue.py ../sitelabs-graph-database-conda           # write the copy
+    python scripts/install_catalogue.py ../sitelabs-graph-database                 # write the copy
     python scripts/install_catalogue.py --check ../sitelabs-partitioned-graph      # is it current?
 
 The copy is <project>/docs/query-catalogue.md: whatever the project keeps above the marker line

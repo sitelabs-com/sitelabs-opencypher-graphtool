@@ -65,6 +65,6 @@ def test_it_names_no_project_that_copies_it():
 
 
 def test_the_language_has_one_name():
-    """The copies in sitelabs-partitioned-graph and sitelabs-graph-database-conda are checked for it."""
+    """The copies in sitelabs-partitioned-graph and sitelabs-graph-database are checked for it."""
     word = "cy" + "pher"
     assert not re.search(rf"(?i)(?<!open){word}", TEXT)
