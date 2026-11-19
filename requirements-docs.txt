@@ -1,0 +1,3 @@
+# The documentation site (mkdocs.yml), built and published by .github/workflows/mkdocs.yml.
+mkdocs==1.6.1
+mike==2.1.3

@@ -11,6 +11,10 @@ It is the engine shared by:
   Cassandra), and
 * **sitelabs-partitioned-graph**: an in-memory graph partitioned over many servers.
 
+**Documentation:** [sitelabs-com.github.io/sitelabs-opencypher-graphtool](https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/),
+a site per release (`/0.2/`, ..., `/latest/`): the engine, its modules, its extension points, the
+query catalogue and development. Its pages are in [`docs/`](docs) ([all documents](docs/index.md)).
+
 ## Install
 
 graph-tool is not on PyPI: it comes from conda-forge, so the engine is installed into a conda

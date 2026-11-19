@@ -11,6 +11,14 @@ writes (what a stored graph or keyspace needs to keep working).
 
 ## [Unreleased]
 
+### Added
+
+- A documentation site, https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/, one per
+  release, as the other sitelabs projects have: `docs/` (overview, modules, extension points, the
+  query catalogue, development), `mkdocs.yml`, and `.github/workflows/mkdocs.yml`, which publishes
+  it to GitHub Pages with mike. `python tools/docs.py` writes each page's menu and the site's
+  sidebar. The query catalogue gets no menu, so the projects' copies of it don't change.
+
 ### Changed
 
 - The docs name the graph database's repository as `sitelabs-graph-database`.

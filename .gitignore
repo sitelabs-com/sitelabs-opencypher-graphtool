@@ -9,3 +9,6 @@ dist/
 # Editors and OS
 .DS_Store
 .idea/
+
+# The documentation site (mkdocs build)
+site/
