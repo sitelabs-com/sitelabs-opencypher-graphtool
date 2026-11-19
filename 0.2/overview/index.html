@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/overview/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Overview - sitelabs-opencypher-graphtool</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+        <link href="../css/version-select.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Overview";
+        var mkdocs_page_input_path = "overview.md";
+        var mkdocs_page_url = "/sitelabs-opencypher-graphtool/latest/overview/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> sitelabs-opencypher-graphtool
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Overview</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Overview</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#whats-where">What's where</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#installing">Installing</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#a-first-query">A first query</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#versions">Versions</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../modules/">The modules</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Using it</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../extending/">Extension points</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../query-catalogue/">Query catalogue</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Development</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../development/">Development</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">References</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">All documents</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">sitelabs-opencypher-graphtool</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Overview</li>
+      <li class="breadcrumb-item active">Overview</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/edit/main/docs/overview.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="overview">Overview</h1>
+<blockquote>
+<p><strong>For:</strong> developers using the engine in a project, and developers of it. <strong>You'll find:</strong> what
+the engine is, who uses it, installing it, a first query, and its versions.</p>
+</blockquote>
+<p><strong>opencypher_graphtool</strong> is an openCypher query engine for <a href="https://graph-tool.skewed.de/">graph-tool</a>
+graphs. The topology lives in graph-tool, in memory. Node and relationship properties live in a
+pluggable property store: in memory, or Apache Cassandra (one table per type). A pydantic data
+model is the single source of truth for types, labels, tables and validation.</p>
+<p>It is the engine shared by:</p>
+<ul>
+<li><a href="https://github.com/sitelabs-com/sitelabs-graph-database">sitelabs-graph-database</a>: the graph
+  database (write server, read replicas, failover, Cassandra), and</li>
+<li><a href="https://github.com/sitelabs-com/sitelabs-partitioned-graph">sitelabs-partitioned-graph</a>: an
+  in-memory graph partitioned over many servers.</li>
+</ul>
+<p>This site describes the engine itself. Each project's own documentation says how it serves the
+engine: its endpoints, its console, its deployment, and what of openCypher it doesn't support.</p>
+<h2 id="whats-where">What's where</h2>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>In short</th>
+<th>Page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>The modules</strong></td>
+<td>The package, module by module, and how they import each other</td>
+<td><a href="../modules/">The modules</a></td>
+</tr>
+<tr>
+<td><strong>Extension points</strong></td>
+<td>Property stores of your own, and the runner's matching steps</td>
+<td><a href="../extending/">Extension points</a></td>
+</tr>
+<tr>
+<td><strong>The language, by example</strong></td>
+<td>A query for each part of openCypher the engine supports</td>
+<td><a href="../query-catalogue/">Query catalogue</a></td>
+</tr>
+<tr>
+<td><strong>Development</strong></td>
+<td>The tests, the catalogue's copies, releasing, this site</td>
+<td><a href="../development/">Development</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="installing">Installing</h2>
+<p>graph-tool is not on PyPI: it comes from conda-forge, so the engine is installed into a conda
+environment that already has it.</p>
+<pre><code class="language-bash">conda env create -f environment.yml          # python, graph-tool, then this package (editable)
+conda activate opencypher-graphtool
+python -m pytest                             # the tests (Cassandra ones skip without it)
+</code></pre>
+<p>In another project, with graph-tool in its environment:</p>
+<pre><code class="language-bash">pip install -e ../sitelabs-opencypher-graphtool[cassandra]        # while developing both side by side
+pip install &quot;opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.0&quot;
+</code></pre>
+<p>The <code>cassandra</code> extra adds the Cassandra driver (for <code>CassandraStore</code>). Without it the engine runs
+on <code>InMemoryStore</code> or a store of your own.</p>
+<h2 id="a-first-query">A first query</h2>
+<pre><code class="language-python">from graph_tool import Graph
+from opencypher_graphtool import RelationshipModel, Field, InMemoryStore, Models, NodeModel, opencypher
+
+
+class Person(NodeModel):
+    class Meta:
+        type = &quot;Person&quot;
+    name: str = Field(index=True)
+
+
+class Knows(RelationshipModel):
+    class Meta:
+        type = &quot;KNOWS&quot;
+        source, target = &quot;Person&quot;, &quot;Person&quot;     # descriptive
+    since: int | None = None
+
+
+cy = opencypher(Graph(), InMemoryStore({}), models=Models([Person, Knows]))
+cy.run(&quot;CREATE (:Person {name: 'Ann'})-[:KNOWS {since: 2020}]-&gt;(:Person {name: 'Bob'})&quot;)
+print(cy.run(&quot;MATCH (a:Person)-[k:KNOWS]-&gt;(b) RETURN a.name AS a, b.name AS b, k.since AS s&quot;).data())
+</code></pre>
+<p>With Cassandra, use <code>CassandraStore(session, "keyspace")</code> instead of <code>InMemoryStore({})</code>. There are
+more examples in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/tree/main/examples"><code>examples/</code></a>.</p>
+<h2 id="versions">Versions</h2>
+<p>Releases are git tags (<code>v0.1.0</code>, ...), each with an entry in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/CHANGELOG.md">CHANGELOG.md</a>: what
+changed, and under <strong>Upgrading</strong> what to do. Before 1.0, a minor release (0.1 to 0.2) may change
+the public API; a patch release doesn't. The projects using the engine pin a tag in their
+requirements, and move to a new one deliberately.</p>
+<p>This site has one version per release (<code>/0.2/</code>, ...), and <code>/latest/</code>: a project links to the
+release it pins.</p>
+<p><strong>0.2.0</strong> names graph elements nodes and relationships everywhere, as openCypher does, not
+vertices and edges (graph-tool's own API, underneath, keeps its names). It changes the API:</p>
+<table>
+<thead>
+<tr>
+<th>Was</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VertexModel</code>, <code>EdgeModel</code></td>
+<td><code>NodeModel</code>, <code>RelationshipModel</code></td>
+</tr>
+<tr>
+<td><code>Schema(vertex_labels=, vertex_types=, edge_types=)</code>, <code>reg("vertex", ...)</code></td>
+<td><code>Schema(node_labels=, node_types=, relationship_types=)</code>, <code>reg("node", ...)</code></td>
+</tr>
+<tr>
+<td>The kinds <code>"vertex"</code>, <code>"edge"</code> (<code>table_namer(kind, type)</code>, stores, models)</td>
+<td><code>"node"</code>, <code>"relationship"</code></td>
+</tr>
+<tr>
+<td><code>reverse_vertex_ids</code> (the default reverse id table)</td>
+<td><code>reverse_node_ids</code></td>
+</tr>
+</tbody>
+</table>
+<p>What was stored before still works: graphs saved with the old schema keys load, a keyspace that
+already has <code>reverse_vertex_ids</code> keeps using it, and a MERGE or a file import makes the same ids
+as before (<code>tests/test_compatibility.py</code>).</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../modules/" class="btn btn-neutral float-right" title="The modules">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+      <span><a href="../modules/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/version-select.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

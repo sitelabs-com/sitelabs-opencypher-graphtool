@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/modules/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>The modules - sitelabs-opencypher-graphtool</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+        <link href="../css/version-select.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "The modules";
+        var mkdocs_page_input_path = "modules.md";
+        var mkdocs_page_url = "/sitelabs-opencypher-graphtool/latest/modules/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> sitelabs-opencypher-graphtool
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Overview</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../overview/">Overview</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">The modules</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#how-the-modules-import-each-other">How the modules import each other</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#the-public-api">The public API</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Using it</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../extending/">Extension points</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../query-catalogue/">Query catalogue</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Development</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../development/">Development</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">References</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">All documents</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">sitelabs-opencypher-graphtool</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Overview</li>
+      <li class="breadcrumb-item active">The modules</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/edit/main/docs/modules.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="the-modules">The modules</h1>
+<blockquote>
+<p><strong>For:</strong> developers of the engine, and anyone reading its code. <strong>You'll find:</strong> each module of
+the package, in the order they load, and how they import each other.</p>
+</blockquote>
+<p>The engine was one 6,400-line module (<code>opencypher_gt</code>). It is now a package of modules,
+<a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/tree/main/src/opencypher_graphtool"><code>src/opencypher_graphtool/</code></a>, listed here in the order they load:</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>errors</code></td>
+<td>The exceptions (<code>OpenCypherError</code>, <code>ConstraintError</code>, lock errors, ...)</td>
+</tr>
+<tr>
+<td><code>locking</code></td>
+<td>One fair readers-writer lock per graph (<code>GraphLock</code>, <code>lock_of</code>)</td>
+</tr>
+<tr>
+<td><code>common</code></td>
+<td>The write transaction record, sentinels, core keys</td>
+</tr>
+<tr>
+<td><code>ids</code></td>
+<td>Element ids: UUIDs, natural-key ids (<code>bulk_node_id</code>, <code>stable_id</code>)</td>
+</tr>
+<tr>
+<td><code>lexer</code>, <code>ast_nodes</code>, <code>parser</code></td>
+<td>openCypher text to a syntax tree (<code>parse</code>)</td>
+</tr>
+<tr>
+<td><code>values</code></td>
+<td>Values, null logic, ordering, the built-in functions</td>
+</tr>
+<tr>
+<td><code>results</code></td>
+<td><code>Node</code>, <code>Rel</code>, <code>Path</code>, <code>Result</code></td>
+</tr>
+<tr>
+<td><code>models</code></td>
+<td>The data model: <code>Models</code>, <code>NodeModel</code>, <code>RelationshipModel</code>, <code>Field</code>, <code>Vector</code>, migrations</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>Labels and types as bitmasks, UUID ids, attached to a graph-tool <code>Graph</code></td>
+</tr>
+<tr>
+<td><code>elements</code></td>
+<td>Creating, changing and deleting nodes and relationships, with undo for transactions</td>
+</tr>
+<tr>
+<td><code>stores</code></td>
+<td>The property store interface (<code>PropertyStore</code>) and <code>InMemoryStore</code></td>
+</tr>
+<tr>
+<td><code>cassandra_store</code></td>
+<td><code>CassandraStore</code> (the <code>cassandra</code> extra)</td>
+</tr>
+<tr>
+<td><code>execution</code>, <code>graph_functions</code>, <code>matching</code>, <code>clauses</code></td>
+<td>The query runner, built up module by module: core, graph functions, <code>MATCH</code> (pattern expansion), the clauses</td>
+</tr>
+<tr>
+<td><code>procedures</code></td>
+<td><code>CALL</code> procedures (PageRank, components, shortest paths, <code>vector.search</code>, ...)</td>
+</tr>
+<tr>
+<td><code>engine</code></td>
+<td><code>OpenCypher</code>, <code>opencypher()</code>, <code>VerifyReport</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-the-modules-import-each-other">How the modules import each other</h2>
+<p>Each module imports what it needs from the modules before it, at the top. The few names it needs
+from the modules after it are bound by its <code>_link()</code> function, which the package's <code>__init__</code>
+calls once every module is loaded.</p>
+<p>Import the public API from the package (<code>from opencypher_graphtool import ...</code>). Importing a
+module directly works too, since the package loads first.</p>
+<h2 id="the-public-api">The public API</h2>
+<p>The public API is what <code>opencypher_graphtool</code> exports (<code>OpenCypher</code>, the models and fields,
+<code>Schema</code>, the stores, the errors), the openCypher the engine accepts, and the tables and ids it
+writes: what a stored graph or keyspace needs to keep working. A change to any of these is a
+<strong>Changed</strong> entry in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../overview/" class="btn btn-neutral float-left" title="Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../extending/" class="btn btn-neutral float-right" title="Extension points">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../overview/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../extending/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/version-select.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

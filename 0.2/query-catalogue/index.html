@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/query-catalogue/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Query catalogue - sitelabs-opencypher-graphtool</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+        <link href="../css/version-select.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Query catalogue";
+        var mkdocs_page_input_path = "query-catalogue.md";
+        var mkdocs_page_url = "/sitelabs-opencypher-graphtool/latest/query-catalogue/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> sitelabs-opencypher-graphtool
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Overview</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../overview/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../modules/">The modules</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Using it</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../extending/">Extension points</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Query catalogue</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#catalogue-procedures">Catalogue procedures</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#literals">Literals</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#operators">Operators</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#null-and-three-valued-logic">Null and three-valued logic</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#lists">Lists</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#maps">Maps</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#case">CASE</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#match-and-patterns">MATCH and patterns</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#variable-length-patterns-and-paths">Variable-length patterns and paths</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#shortest-paths">Shortest paths</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#optional-match">OPTIONAL MATCH</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pattern-predicates-exists-and-pattern-comprehensions">Pattern predicates, EXISTS and pattern comprehensions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#with">WITH</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#return-order-by-skip-and-limit">RETURN, ORDER BY, SKIP and LIMIT</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#aggregation">Aggregation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#unwind">UNWIND</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#union">UNION</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#graph-functions">Graph functions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#graph-algorithm-procedures">Graph algorithm procedures</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#vector-search">Vector search</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#explain">EXPLAIN</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#writes">Writes</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Development</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../development/">Development</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">References</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">All documents</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">sitelabs-opencypher-graphtool</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Using it</li>
+      <li class="breadcrumb-item active">Query catalogue</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/edit/main/docs/query-catalogue.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="opencypher-query-catalogue">openCypher query catalogue</h1>
+<blockquote>
+<p><strong>For:</strong> anyone trying the engine's openCypher in the UI query console (sitelabs-graph-ui). <strong>You'll
+find:</strong> one or more queries for each part of the language the engine supports, ready to copy into
+the console's query box, and what each one shows.</p>
+</blockquote>
+<p>Every query below runs as written against two sample graphs, a karate club and a citation graph (two
+return no rows on purpose, and say so). Where the project serving the console ships them, load them
+once, from its directory:</p>
+<pre><code class="language-bash">python -m example_solutions.example_graphs.karate_club   # 34 :Member nodes, 78 :FRIENDS_WITH relationships
+python -m example_solutions.example_graphs.citations     # 48 :Document nodes (with embeddings), 77 :CITES relationships
+</code></pre>
+<ul>
+<li><strong>Karate club:</strong> <code>(:Member {member_no, name, role, faction})-[:FRIENDS_WITH]-&gt;(:Member)</code>. Member 1
+  is "Mr. Hi", member 34 is "John A.". Each friendship is stored once, lower <code>member_no</code> to higher, so
+  most queries match it in either direction: <code>-[:FRIENDS_WITH]-</code>.</li>
+<li><strong>Citations:</strong> <code>(:Document {title, topic, year, embedding})-[:CITES]-&gt;(:Document)</code>. Four topics, 12
+  papers each, from 2015 to 2026. <code>embedding</code> is a 16-number vector.</li>
+</ul>
+<p><strong>Parameters.</strong> A query that uses <code>$name</code> has its parameters in a JSON block under it: paste that into
+the console's parameters box.</p>
+<p><strong>Writes.</strong> The console is read-only and refuses any query that would change the graph. The queries in
+<a href="#writes">Writes</a> are for <code>POST /opencypher</code>; in the console, press <strong>Explain</strong> on them to see their
+plan without running them.</p>
+<p>What the engine does <em>not</em> support is listed in the documentation of the project serving the
+console.</p>
+<ul>
+<li><a href="#catalogue-procedures">Catalogue procedures</a></li>
+<li><a href="#literals">Literals</a></li>
+<li><a href="#operators">Operators</a></li>
+<li><a href="#null-and-three-valued-logic">Null and three-valued logic</a></li>
+<li><a href="#lists">Lists</a></li>
+<li><a href="#maps">Maps</a></li>
+<li><a href="#case">CASE</a></li>
+<li><a href="#functions">Functions</a></li>
+<li><a href="#match-and-patterns">MATCH and patterns</a></li>
+<li><a href="#variable-length-patterns-and-paths">Variable-length patterns and paths</a></li>
+<li><a href="#shortest-paths">Shortest paths</a></li>
+<li><a href="#optional-match">OPTIONAL MATCH</a></li>
+<li><a href="#pattern-predicates-exists-and-pattern-comprehensions">Pattern predicates, EXISTS and pattern comprehensions</a></li>
+<li><a href="#with">WITH</a></li>
+<li><a href="#return-order-by-skip-and-limit">RETURN, ORDER BY, SKIP and LIMIT</a></li>
+<li><a href="#aggregation">Aggregation</a></li>
+<li><a href="#unwind">UNWIND</a></li>
+<li><a href="#union">UNION</a></li>
+<li><a href="#parameters">Parameters</a></li>
+<li><a href="#graph-functions">Graph functions</a></li>
+<li><a href="#graph-algorithm-procedures">Graph algorithm procedures</a></li>
+<li><a href="#vector-search">Vector search</a></li>
+<li><a href="#explain">EXPLAIN</a></li>
+<li><a href="#writes">Writes</a></li>
+</ul>
+<h2 id="catalogue-procedures">Catalogue procedures</h2>
+<p>The labels, relationship types and property keys in the graph:</p>
+<pre><code class="language-opencypher">CALL db.labels() YIELD label RETURN label
+</code></pre>
+<pre><code class="language-opencypher">CALL db.relationshipTypes() YIELD relationshipType RETURN relationshipType
+</code></pre>
+<pre><code class="language-opencypher">CALL db.propertyKeys() YIELD propertyKey RETURN propertyKey ORDER BY propertyKey
+</code></pre>
+<h2 id="literals">Literals</h2>
+<p>Numbers: integers, hexadecimal, floats, exponents and negatives:</p>
+<pre><code class="language-opencypher">RETURN 42 AS int, 0x1F AS hex, 3.14 AS float, 6.02e23 AS exponent, 1e-3 AS small, -7 AS negative
+</code></pre>
+<p>Strings in single or double quotes, with escapes (<code>\'</code>, <code>\"</code>, <code>\n</code>, <code>\t</code>, <code>\\</code>, <code>\uXXXX</code>):</p>
+<pre><code class="language-opencypher">RETURN 'single' AS a, &quot;double&quot; AS b, 'it\'s' AS c, &quot;say \&quot;hi\&quot;&quot; AS d, 'tab:\there' AS e, 'café' AS f
+</code></pre>
+<p>Booleans, null, lists and maps, nested:</p>
+<pre><code class="language-opencypher">RETURN true AS t, false AS f, null AS n, [1, 'two', 3.0, [4]] AS list, {name: 'Ann', tags: ['a', 'b'], address: {city: 'Sydney'}} AS map
+</code></pre>
+<p>Comments, and backtick-quoted names (with spaces, or that would be keywords):</p>
+<pre><code class="language-opencypher">// a line comment
+MATCH (`the member`:Member) /* a block comment */
+WHERE `the member`.member_no = 1
+RETURN `the member`.name AS `Member name`, 1 AS `match`
+</code></pre>
+<h2 id="operators">Operators</h2>
+<p>Arithmetic: <code>+ - * / % ^</code> and unary minus. Integer division truncates; <code>^</code> always gives a float:</p>
+<pre><code class="language-opencypher">RETURN 7 + 2 AS add, 7 - 2 AS sub, 7 * 2 AS mul, 7 / 2 AS int_div, 7.0 / 2 AS float_div, 7 % 2 AS mod, 2 ^ 10 AS pow, -(3 + 4) AS neg
+</code></pre>
+<p>Precedence and parentheses:</p>
+<pre><code class="language-opencypher">RETURN 2 + 3 * 4 AS a, (2 + 3) * 4 AS b, -2 ^ 2 AS c, 2 ^ 3 ^ 2 AS right_assoc
+</code></pre>
+<p><code>+</code> joins strings and lists too:</p>
+<pre><code class="language-opencypher">RETURN 'graph' + '-' + 'tool' AS s, [1, 2] + [3] AS l, [1, 2] + 3 AS l2
+</code></pre>
+<p>Comparisons, including chained ones (<code>a &lt; b &lt;= c</code> means <code>a &lt; b AND b &lt;= c</code>):</p>
+<pre><code class="language-opencypher">RETURN 1 = 1 AS eq, 1 &lt;&gt; 2 AS ne, 1 != 2 AS ne2, 1 &lt; 2 AS lt, 2 &lt;= 2 AS le, 3 &gt; 2 AS gt, 3 &gt;= 4 AS ge, 1 &lt; 2 &lt;= 2 &lt; 3 AS chained, 'a' &lt; 'b' AS strings
+</code></pre>
+<p>Boolean operators:</p>
+<pre><code class="language-opencypher">RETURN true AND false AS and_, true OR false AS or_, true XOR true AS xor_, NOT false AS not_
+</code></pre>
+<p>String operators: <code>STARTS WITH</code>, <code>ENDS WITH</code>, <code>CONTAINS</code> and regular expressions (<code>=~</code>, the whole
+string must match):</p>
+<pre><code class="language-opencypher">MATCH (m:Member)
+WHERE m.name STARTS WITH 'Member 2' OR m.name ENDS WITH '.' OR m.name CONTAINS 'Hi'
+RETURN m.member_no, m.name ORDER BY m.member_no
+</code></pre>
+<pre><code class="language-opencypher">MATCH (d:Document) WHERE d.title =~ '(?i)quorum.*' RETURN d.title, d.year
+</code></pre>
+<p><code>IN</code> a list:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) WHERE m.member_no IN [1, 2, 33, 34] RETURN m.member_no, m.name, m.role
+</code></pre>
+<h2 id="null-and-three-valued-logic">Null and three-valued logic</h2>
+<p><code>null</code> propagates through comparisons and arithmetic, and <code>AND</code> / <code>OR</code> follow three-valued logic:</p>
+<pre><code class="language-opencypher">RETURN null = null AS eq, null &lt;&gt; 1 AS ne, null + 1 AS plus, null OR true AS or_true, null OR false AS or_false, null AND false AS and_false, NOT null AS not_null
+</code></pre>
+<p><code>IN</code> with a null in the list, and <code>IS NULL</code> / <code>IS NOT NULL</code>:</p>
+<pre><code class="language-opencypher">RETURN 2 IN [1, 2, null] AS found, 3 IN [1, 2, null] AS unknown, null IS NULL AS a, 1 IS NOT NULL AS b
+</code></pre>
+<p>A missing property is null:</p>
+<pre><code class="language-opencypher">MATCH (m:Member {member_no: 1}) RETURN m.nickname AS missing, m.nickname IS NULL AS is_null, coalesce(m.nickname, m.name) AS shown
+</code></pre>
+<h2 id="lists">Lists</h2>
+<p>Indexing (negative counts from the end) and slicing (<code>[from..to]</code>, <code>to</code> exclusive, either may be left
+out):</p>
+<pre><code class="language-opencypher">WITH [10, 20, 30, 40, 50] AS l
+RETURN l[0] AS first, l[-1] AS last, l[1..3] AS middle, l[..2] AS head2, l[-2..] AS tail2, l[10] AS out_of_range
+</code></pre>
+<p>List comprehensions: filter, map, or both:</p>
+<pre><code class="language-opencypher">WITH range(1, 10) AS l
+RETURN [x IN l WHERE x % 2 = 0] AS evens, [x IN l | x * x] AS squares, [x IN l WHERE x &gt; 7 | x * 10] AS both
+</code></pre>
+<p>Quantifiers <code>all</code>, <code>any</code>, <code>none</code>, <code>single</code>:</p>
+<pre><code class="language-opencypher">WITH [2, 4, 6, 7] AS l
+RETURN all(x IN l WHERE x &gt; 0) AS all_pos, any(x IN l WHERE x % 2 = 1) AS any_odd, none(x IN l WHERE x &gt; 100) AS none_big, single(x IN l WHERE x = 7) AS one_seven
+</code></pre>
+<p><code>reduce</code>:</p>
+<pre><code class="language-opencypher">RETURN reduce(total = 0, x IN range(1, 100) | total + x) AS sum_1_to_100, reduce(s = '', w IN ['a', 'b', 'c'] | s + w) AS joined
+</code></pre>
+<p>List functions:</p>
+<pre><code class="language-opencypher">RETURN range(0, 10, 3) AS stepped, range(5, 1, -2) AS down, size([1, 2, 3]) AS size, head([1, 2, 3]) AS head, last([1, 2, 3]) AS last, tail([1, 2, 3]) AS tail, reverse([1, 2, 3]) AS reversed, isEmpty([]) AS empty
+</code></pre>
+<p>Lists from the graph, compared with comprehensions over them:</p>
+<pre><code class="language-opencypher">MATCH (d:Document {topic: 'query languages'})
+WITH collect(d.year) AS years
+RETURN years, [y IN years WHERE y &gt;= 2022] AS recent, size(years) AS n
+</code></pre>
+<h2 id="maps">Maps</h2>
+<p>Keys by <code>.name</code> or <code>['name']</code>, nested access, and <code>keys()</code>:</p>
+<pre><code class="language-opencypher">WITH {name: 'Ann', tags: ['a', 'b'], address: {city: 'Sydney'}} AS m
+RETURN m.name AS name, m['tags'][1] AS second_tag, m.address.city AS city, keys(m) AS keys
+</code></pre>
+<p>A property chosen at run time, with <code>n[expression]</code>:</p>
+<pre><code class="language-opencypher">MATCH (m:Member {member_no: 1}) RETURN m[$key] AS value, m['role'] AS role
+</code></pre>
+<pre><code class="language-json">{&quot;key&quot;: &quot;faction&quot;}
+</code></pre>
+<p>Building a map from a node (the engine has no map projection <code>n{.a, .b}</code>, so write the map out):</p>
+<pre><code class="language-opencypher">MATCH (m:Member) WHERE m.member_no &lt;= 3
+RETURN {no: m.member_no, name: m.name, faction: m.faction} AS member, properties(m) AS all_properties
+</code></pre>
+<h2 id="case">CASE</h2>
+<p>The generic form (conditions):</p>
+<pre><code class="language-opencypher">MATCH (d:Document)
+RETURN d.title,
+       CASE WHEN d.year &lt; 2018 THEN 'early' WHEN d.year &lt; 2023 THEN 'middle' ELSE 'recent' END AS era
+ORDER BY d.year LIMIT 10
+</code></pre>
+<p>The simple form (one value against several):</p>
+<pre><code class="language-opencypher">MATCH (m:Member)
+RETURN m.member_no, CASE m.role WHEN 'instructor' THEN 'teaches' WHEN 'administrator' THEN 'runs the club' ELSE 'trains' END AS does
+ORDER BY m.member_no LIMIT 5
+</code></pre>
+<h2 id="functions">Functions</h2>
+<p>Strings:</p>
+<pre><code class="language-opencypher">RETURN toUpper('graph') AS up, toLower('GRAPH') AS low, trim('  x  ') AS trim, ltrim('  x') AS ltrim, rtrim('x  ') AS rtrim,
+       replace('a-b-c', '-', '+') AS replace, substring('openCypher', 4) AS sub, substring('openCypher', 0, 4) AS sub2,
+       left('openCypher', 4) AS left, right('openCypher', 6) AS right, split('a,b,c', ',') AS split, reverse('abc') AS rev, size('hello') AS size
+</code></pre>
+<p>Numbers:</p>
+<pre><code class="language-opencypher">RETURN abs(-3) AS abs, ceil(1.2) AS ceil, floor(1.8) AS floor, round(2.5) AS round, round(3.14159, 2) AS round2,
+       round(2.5, 0, 'HALF_EVEN') AS banker, sign(-4) AS sign, sqrt(16) AS sqrt, exp(1) AS exp, log(e()) AS log, log10(1000) AS log10
+</code></pre>
+<p>Trigonometry and constants:</p>
+<pre><code class="language-opencypher">RETURN pi() AS pi, e() AS e, sin(pi() / 2) AS sin, cos(0) AS cos, tan(0) AS tan, asin(1) AS asin, acos(1) AS acos,
+       atan(1) AS atan, atan2(1, 1) AS atan2, degrees(pi()) AS degrees, radians(180) AS radians
+</code></pre>
+<p>Conversions:</p>
+<pre><code class="language-opencypher">RETURN toInteger('42') AS i, toInteger(3.9) AS trunc, toFloat('2.5') AS f, toBoolean('true') AS b, toString(12) AS s, toString(true) AS s2, toInteger('nope') AS bad
+</code></pre>
+<p>Others: <code>coalesce</code>, <code>timestamp</code> (milliseconds since 1970), <code>randomUUID</code> and <code>rand</code> (0 to 1):</p>
+<pre><code class="language-opencypher">RETURN coalesce(null, null, 'third') AS first_non_null, timestamp() AS now_ms, randomUUID() AS uuid, rand() AS random
+</code></pre>
+<h2 id="match-and-patterns">MATCH and patterns</h2>
+<p>All nodes with a label, and inline property maps:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN m ORDER BY m.member_no LIMIT 5
+</code></pre>
+<pre><code class="language-opencypher">MATCH (m:Member {faction: 'Officer', role: 'member'}) RETURN m.member_no, m.name ORDER BY m.member_no
+</code></pre>
+<p>Any node, with a label test in <code>WHERE</code>:</p>
+<pre><code class="language-opencypher">MATCH (n) WHERE n:Document AND n.year = 2015 RETURN labels(n) AS labels, n.title
+</code></pre>
+<p>Several labels at once (<code>:A:B</code>): no sample node has two, so this returns nothing, but it shows the
+syntax in both places:</p>
+<pre><code class="language-opencypher">MATCH (n:Member:Person) RETURN n UNION MATCH (n) WHERE n:Member:Document RETURN n
+</code></pre>
+<p>Relationship directions: outgoing, incoming, either way, and anonymous relationships:</p>
+<pre><code class="language-opencypher">MATCH (d:Document {title: 'Pattern matching, part 2'})-[:CITES]-&gt;(cited) RETURN 'cites' AS dir, cited.title AS title
+UNION ALL
+MATCH (d:Document {title: 'Pattern matching, part 2'})&lt;-[:CITES]-(citing) RETURN 'cited by' AS dir, citing.title AS title
+</code></pre>
+<pre><code class="language-opencypher">MATCH (:Member {member_no: 1})-[:FRIENDS_WITH]-(friend) RETURN friend.member_no ORDER BY friend.member_no
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 34})--(b) RETURN count(b) AS either, size([(a)--&gt;(x) | x]) AS out, size([(a)&lt;--(x) | x]) AS in
+</code></pre>
+<p>A relationship variable, its type and properties, and type alternatives <code>[:A|B]</code>:</p>
+<pre><code class="language-opencypher">MATCH (a)-[r:FRIENDS_WITH|CITES]-&gt;(b) RETURN type(r) AS type, count(*) AS n
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 1})-[r:FRIENDS_WITH]-&gt;(b) RETURN r, startNode(r).name AS from, endNode(r).name AS to LIMIT 3
+</code></pre>
+<p>Longer chains: friends of friends that are not direct friends:</p>
+<pre><code class="language-opencypher">MATCH (me:Member {member_no: 17})-[:FRIENDS_WITH]-(f)-[:FRIENDS_WITH]-(fof)
+WHERE fof &lt;&gt; me AND NOT (me)-[:FRIENDS_WITH]-(fof)
+RETURN DISTINCT fof.member_no AS suggestion ORDER BY suggestion
+</code></pre>
+<p>Cycles: every friendship triangle, each once:</p>
+<pre><code class="language-opencypher">MATCH (a:Member)-[:FRIENDS_WITH]-(b:Member)-[:FRIENDS_WITH]-(c:Member)-[:FRIENDS_WITH]-(a)
+WHERE a.member_no &lt; b.member_no &lt; c.member_no
+RETURN a.member_no, b.member_no, c.member_no ORDER BY a.member_no, b.member_no, c.member_no
+</code></pre>
+<p>Several pattern parts separated by commas, sharing a node:</p>
+<pre><code class="language-opencypher">MATCH (hi:Member {member_no: 1})-[:FRIENDS_WITH]-(x), (x)-[:FRIENDS_WITH]-(john:Member {member_no: 34})
+RETURN x.member_no AS friend_of_both, x.faction
+</code></pre>
+<p>Several <code>MATCH</code> clauses in a row:</p>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 1})
+MATCH (b:Member {member_no: 34})
+RETURN a.name, b.name, (a)-[:FRIENDS_WITH]-(b) AS are_friends
+</code></pre>
+<h2 id="variable-length-patterns-and-paths">Variable-length patterns and paths</h2>
+<p>Exactly 2 hops (<code>*2</code>), a range (<code>*1..2</code>), at most (<code>*..2</code>), and at least (<code>*2..</code>, capped by the server):</p>
+<pre><code class="language-opencypher">MATCH (:Member {member_no: 17})-[:FRIENDS_WITH*2]-(m) RETURN DISTINCT m.member_no ORDER BY m.member_no
+</code></pre>
+<pre><code class="language-opencypher">MATCH (:Member {member_no: 17})-[:FRIENDS_WITH*1..2]-(m) RETURN count(DISTINCT m) AS within_two_hops
+</code></pre>
+<pre><code class="language-opencypher">MATCH (:Member {member_no: 17})-[:FRIENDS_WITH*..2]-(m) RETURN count(DISTINCT m) AS within_two_hops
+</code></pre>
+<pre><code class="language-opencypher">MATCH (d:Document {title: 'Variable-length paths, part 2'})-[:CITES*3..]-&gt;(old) RETURN DISTINCT old.title, old.year ORDER BY old.year LIMIT 5
+</code></pre>
+<p>Any number of hops (<code>*</code>) along the citations, with a path variable, and the path functions:</p>
+<pre><code class="language-opencypher">MATCH p = (d:Document {title: 'Variable-length paths, part 2'})-[:CITES*]-&gt;(old:Document {year: 2015})
+RETURN p, length(p) AS hops, [n IN nodes(p) | n.year] AS years, [r IN relationships(p) | type(r)] AS types
+ORDER BY hops LIMIT 3
+</code></pre>
+<p>A path variable on a fixed-length pattern, and a relationship-list variable on a variable-length one:</p>
+<pre><code class="language-opencypher">MATCH p = (a:Member {member_no: 1})-[:FRIENDS_WITH]-&gt;(b)-[:FRIENDS_WITH]-&gt;(c)
+RETURN p, length(p) AS len LIMIT 5
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 1})-[rs:FRIENDS_WITH*2]-(c:Member {member_no: 34})
+RETURN [r IN rs | [startNode(r).member_no, endNode(r).member_no]] AS steps
+</code></pre>
+<h2 id="shortest-paths">Shortest paths</h2>
+<p><code>shortestPath()</code> (one) and <code>allShortestPaths()</code> (every one of the shortest length):</p>
+<pre><code class="language-opencypher">MATCH p = shortestPath((a:Member {member_no: 17})-[:FRIENDS_WITH*]-(b:Member {member_no: 26}))
+RETURN p, length(p) AS hops, [n IN nodes(p) | n.member_no] AS via
+</code></pre>
+<pre><code class="language-opencypher">MATCH p = allShortestPaths((a:Member {member_no: 17})-[:FRIENDS_WITH*]-(b:Member {member_no: 26}))
+RETURN [n IN nodes(p) | n.member_no] AS via ORDER BY via
+</code></pre>
+<p>With a hop limit, and following direction:</p>
+<pre><code class="language-opencypher">MATCH p = shortestPath((a:Document {title: 'Variable-length paths, part 2'})-[:CITES*..10]-&gt;(b:Document {year: 2015}))
+RETURN b.title, length(p) AS hops ORDER BY hops, b.title
+</code></pre>
+<h2 id="optional-match">OPTIONAL MATCH</h2>
+<p>Keeps the row, with nulls, when the pattern isn't found: the first paper cites nothing:</p>
+<pre><code class="language-opencypher">MATCH (d:Document) WHERE d.year &lt;= 2016
+OPTIONAL MATCH (d)-[:CITES]-&gt;(c:Document)
+RETURN d.title, d.year, count(c) AS cites, collect(c.title) AS titles ORDER BY d.year, d.title
+</code></pre>
+<pre><code class="language-opencypher">MATCH (m:Member {member_no: 12})
+OPTIONAL MATCH (m)-[:FRIENDS_WITH]-(f:Member) WHERE f.member_no &gt; 1
+RETURN m.member_no, f.member_no AS other_friend
+</code></pre>
+<h2 id="pattern-predicates-exists-and-pattern-comprehensions">Pattern predicates, EXISTS and pattern comprehensions</h2>
+<p>A pattern as a condition, and its negation:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) WHERE (m)-[:FRIENDS_WITH]-(:Member {member_no: 1}) AND (m)-[:FRIENDS_WITH]-(:Member {member_no: 34})
+RETURN m.member_no AS friend_of_both_leaders
+</code></pre>
+<pre><code class="language-opencypher">MATCH (d:Document) WHERE NOT (d)&lt;-[:CITES]-() RETURN d.title AS never_cited, d.year ORDER BY d.year DESC LIMIT 10
+</code></pre>
+<p><code>EXISTS { pattern }</code>, with or without a <code>WHERE</code>:</p>
+<pre><code class="language-opencypher">MATCH (d:Document)
+WHERE EXISTS { (d)-[:CITES]-&gt;(other:Document) WHERE other.topic &lt;&gt; d.topic }
+RETURN d.title AS cites_another_topic, d.topic ORDER BY d.title
+</code></pre>
+<p>Pattern comprehensions: a list built from a pattern, per row:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) WHERE m.member_no IN [1, 34]
+RETURN m.name, [(m)-[:FRIENDS_WITH]-(f) WHERE f.faction &lt;&gt; m.faction | f.member_no] AS friends_across_the_split
+</code></pre>
+<p>Counting with one (the engine has no <code>COUNT { }</code> subquery):</p>
+<pre><code class="language-opencypher">MATCH (m:Member)
+RETURN m.member_no, size([(m)-[:FRIENDS_WITH]-(f) | f]) AS friends ORDER BY friends DESC LIMIT 5
+</code></pre>
+<h2 id="with">WITH</h2>
+<p>Passing values on, filtering after an aggregate (like SQL's <code>HAVING</code>):</p>
+<pre><code class="language-opencypher">MATCH (m:Member)-[:FRIENDS_WITH]-(f)
+WITH m, count(f) AS friends
+WHERE friends &gt;= 10
+RETURN m.member_no, m.name, friends ORDER BY friends DESC
+</code></pre>
+<p><code>ORDER BY</code> and <code>LIMIT</code> inside <code>WITH</code>, before matching on:</p>
+<pre><code class="language-opencypher">MATCH (d:Document) WITH d ORDER BY d.year DESC, d.title LIMIT 1
+MATCH (d)-[:CITES]-&gt;(c)
+RETURN d.title AS newest, collect(c.title) AS it_cites
+</code></pre>
+<p><code>WITH DISTINCT</code>, and <code>WITH *</code> (keep every variable, add more):</p>
+<pre><code class="language-opencypher">MATCH (d:Document) WITH DISTINCT d.topic AS topic RETURN topic ORDER BY topic
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 1})-[:FRIENDS_WITH]-(b)
+WITH *, b.member_no * 10 AS score
+RETURN a.member_no, b.member_no, score ORDER BY score LIMIT 3
+</code></pre>
+<p>Chaining several <code>WITH</code> stages:</p>
+<pre><code class="language-opencypher">MATCH (d:Document)
+WITH d.topic AS topic, min(d.year) AS first, max(d.year) AS last
+WITH topic, last - first AS span
+WHERE span &gt; 5
+RETURN topic, span ORDER BY topic
+</code></pre>
+<h2 id="return-order-by-skip-and-limit">RETURN, ORDER BY, SKIP and LIMIT</h2>
+<p><code>RETURN *</code>, <code>RETURN DISTINCT</code>, aliases, expressions:</p>
+<pre><code class="language-opencypher">MATCH (m:Member {member_no: 34}) RETURN *
+</code></pre>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN DISTINCT m.faction AS faction, m.role AS role ORDER BY faction, role
+</code></pre>
+<p>Several sort keys, ascending and descending (<code>ASC</code>, <code>ASCENDING</code>, <code>DESC</code>, <code>DESCENDING</code>):</p>
+<pre><code class="language-opencypher">MATCH (d:Document) RETURN d.topic, d.year, d.title ORDER BY d.topic ASCENDING, d.year DESC LIMIT 8
+</code></pre>
+<p>Paging with <code>SKIP</code> and <code>LIMIT</code>, including expressions:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN m.member_no ORDER BY m.member_no SKIP 10 LIMIT 5
+</code></pre>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN m.member_no ORDER BY m.member_no SKIP $page * $size LIMIT $size
+</code></pre>
+<pre><code class="language-json">{&quot;page&quot;: 2, &quot;size&quot;: 5}
+</code></pre>
+<p>Nulls sort last when ascending (first when descending):</p>
+<pre><code class="language-opencypher">UNWIND [3, null, 1, 2] AS x RETURN x ORDER BY x
+</code></pre>
+<h2 id="aggregation">Aggregation</h2>
+<p><code>count(*)</code>, <code>count(expr)</code> (skips nulls), <code>count(DISTINCT ...)</code>; the other columns are the grouping keys:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN m.faction AS faction, count(*) AS members, count(DISTINCT m.role) AS roles ORDER BY faction
+</code></pre>
+<pre><code class="language-opencypher">UNWIND [1, null, 2, 2] AS x RETURN count(*) AS rows, count(x) AS values, count(DISTINCT x) AS distinct_values
+</code></pre>
+<p><code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>:</p>
+<pre><code class="language-opencypher">MATCH (d:Document) RETURN d.topic, sum(d.year) AS sum, avg(d.year) AS avg, min(d.year) AS min, max(d.title) AS last_title ORDER BY d.topic
+</code></pre>
+<p><code>collect</code> and <code>collect(DISTINCT ...)</code>:</p>
+<pre><code class="language-opencypher">MATCH (m:Member)-[:FRIENDS_WITH]-(f) WHERE m.member_no IN [1, 34]
+RETURN m.name, collect(f.member_no) AS friends, collect(DISTINCT f.faction) AS factions
+</code></pre>
+<p>Statistics: <code>stDev</code> (sample), <code>stDevP</code> (population), <code>percentileCont</code> (interpolated), <code>percentileDisc</code>
+(an actual value):</p>
+<pre><code class="language-opencypher">MATCH (m:Member)-[:FRIENDS_WITH]-(f)
+WITH m, count(f) AS degree
+RETURN stDev(degree) AS stdev, stDevP(degree) AS stdevp, percentileCont(degree, 0.5) AS median, percentileDisc(degree, 0.9) AS p90, avg(degree) AS mean
+</code></pre>
+<p>Aggregates inside expressions, and aggregating a whole graph to one row:</p>
+<pre><code class="language-opencypher">MATCH (d:Document) RETURN count(*) AS papers, max(d.year) - min(d.year) + 1 AS years, round(toFloat(count(*)) / 4, 1) AS per_topic
+</code></pre>
+<h2 id="unwind">UNWIND</h2>
+<p>A list into rows, nested <code>UNWIND</code>s, and <code>range()</code>:</p>
+<pre><code class="language-opencypher">UNWIND ['a', 'b'] AS letter UNWIND range(1, 3) AS n RETURN letter + toString(n) AS cell
+</code></pre>
+<p>From a parameter, then matching on each value:</p>
+<pre><code class="language-opencypher">UNWIND $members AS no
+MATCH (m:Member {member_no: no})
+RETURN no, m.name, m.faction
+</code></pre>
+<pre><code class="language-json">{&quot;members&quot;: [1, 9, 34]}
+</code></pre>
+<p>A collected list back into rows:</p>
+<pre><code class="language-opencypher">MATCH (d:Document {topic: 'vector retrieval'})
+WITH collect(d) AS docs
+UNWIND docs[0..3] AS d
+RETURN d.title
+</code></pre>
+<p>An empty list gives no rows:</p>
+<pre><code class="language-opencypher">UNWIND [] AS x RETURN x
+</code></pre>
+<h2 id="union">UNION</h2>
+<p><code>UNION</code> removes duplicate rows, <code>UNION ALL</code> keeps them; the column names must match:</p>
+<pre><code class="language-opencypher">MATCH (m:Member {role: 'instructor'}) RETURN m.name AS name
+UNION
+MATCH (m:Member {role: 'administrator'}) RETURN m.name AS name
+UNION
+MATCH (m:Member {role: 'instructor'}) RETURN m.name AS name
+</code></pre>
+<pre><code class="language-opencypher">RETURN 1 AS x UNION ALL RETURN 1 AS x UNION ALL RETURN 2 AS x
+</code></pre>
+<h2 id="parameters">Parameters</h2>
+<p>Values of every JSON type, used in a pattern and in expressions:</p>
+<pre><code class="language-opencypher">MATCH (m:Member {faction: $faction})
+WHERE m.member_no IN $numbers AND m.name STARTS WITH $prefix
+RETURN m.member_no, m.name, $flag AS flag, $settings.colour AS colour
+</code></pre>
+<pre><code class="language-json">{&quot;faction&quot;: &quot;Mr. Hi&quot;, &quot;numbers&quot;: [1, 2, 3, 4, 5, 20], &quot;prefix&quot;: &quot;Member&quot;, &quot;flag&quot;: true, &quot;settings&quot;: {&quot;colour&quot;: &quot;blue&quot;}}
+</code></pre>
+<p>Finding a node by its id, as the console's <strong>Expand neighbours</strong> does (take an id from any answer):</p>
+<pre><code class="language-opencypher">MATCH (a)-[r]-(b) WHERE id(a) = $id RETURN a, r, b
+</code></pre>
+<pre><code class="language-json">{&quot;id&quot;: &quot;paste an id here&quot;}
+</code></pre>
+<h2 id="graph-functions">Graph functions</h2>
+<p>A node's id, labels, keys and properties, and a relationship's type and ends:</p>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 1})-[r:FRIENDS_WITH]-&gt;(b:Member {member_no: 2})
+RETURN id(a) AS id, elementId(a) AS element_id, labels(a) AS labels, keys(a) AS keys, properties(a) AS props,
+       type(r) AS type, id(startNode(r)) = id(a) AS starts_at_a, endNode(r).name AS ends_at
+</code></pre>
+<p><code>degree()</code>: all relationships, or one direction only:</p>
+<pre><code class="language-opencypher">MATCH (m:Member) RETURN m.member_no, degree(m) AS all, degree(m, 'out') AS out, degree(m, 'in') AS in ORDER BY all DESC LIMIT 5
+</code></pre>
+<p><code>exists(property)</code> (from older openCypher; <code>IS NOT NULL</code> is the modern form):</p>
+<pre><code class="language-opencypher">MATCH (m:Member {member_no: 1}) RETURN exists(m.name) AS has_name, exists(m.nickname) AS has_nickname
+</code></pre>
+<p><code>length()</code> of a path and <code>size()</code> of a list or string:</p>
+<pre><code class="language-opencypher">MATCH p = (:Member {member_no: 1})-[:FRIENDS_WITH]-&gt;()-[:FRIENDS_WITH]-&gt;() RETURN length(p) AS path, size(nodes(p)) AS nodes, size('abc') AS string LIMIT 1
+</code></pre>
+<h2 id="graph-algorithm-procedures">Graph algorithm procedures</h2>
+<p>These run in graph-tool over the whole graph. <code>YIELD</code> names the columns, <code>AS</code> renames them, and a
+<code>WHERE</code> after <code>YIELD</code> filters them.</p>
+<p>PageRank, on the friendships only, both directions:</p>
+<pre><code class="language-opencypher">CALL gt.pageRank({direction: 'BOTH', relationshipTypes: ['FRIENDS_WITH'], dampingFactor: 0.85})
+YIELD node, score AS rank
+WHERE node:Member
+RETURN node.member_no, node.name, round(rank, 4) AS rank ORDER BY rank DESC LIMIT 5
+</code></pre>
+<p>The most cited papers by PageRank (direction follows the citations):</p>
+<pre><code class="language-opencypher">CALL gt.pageRank({relationshipTypes: ['CITES'], maxIterations: 100, tolerance: 0.000001})
+YIELD node, score WHERE node:Document
+RETURN node.title, node.year, round(score, 4) AS score ORDER BY score DESC LIMIT 5
+</code></pre>
+<p>Connected components:</p>
+<pre><code class="language-opencypher">CALL gt.connectedComponents() YIELD node, componentId
+RETURN componentId, labels(node)[0] AS label, count(*) AS size ORDER BY size DESC
+</code></pre>
+<p>Label propagation (<code>gt.peerPressure</code>), its clusters set against the club's two factions:</p>
+<pre><code class="language-opencypher">CALL gt.peerPressure({relationshipTypes: ['FRIENDS_WITH'], maxIterations: 30}) YIELD node, cluster
+WITH node, cluster WHERE node:Member
+RETURN cluster, node.faction AS faction, count(*) AS members ORDER BY cluster, faction
+</code></pre>
+<p>A shortest path from a procedure, with matched nodes as its arguments:</p>
+<pre><code class="language-opencypher">MATCH (a:Member {member_no: 17}), (b:Member {member_no: 26})
+CALL gt.shortestPath(a, b, {direction: 'BOTH', relationshipTypes: ['FRIENDS_WITH']}) YIELD path, totalCost
+RETURN path, totalCost, [n IN nodes(path) | n.member_no] AS via
+</code></pre>
+<h2 id="vector-search">Vector search</h2>
+<p>The parameter <code>q</code> is a 16-number stand-in for the embedding of a question about vector retrieval
+(the centre of the sample's "vector retrieval" topic); it is the same under each query here.</p>
+<p>The k most similar papers (a nearest-neighbour search in Cassandra):</p>
+<pre><code class="language-opencypher">CALL vector.search('Document', 'embedding', $q, 5) YIELD node, score
+RETURN node.title AS title, node.topic AS topic, round(score, 4) AS score
+</code></pre>
+<pre><code class="language-json">{&quot;q&quot;: [-0.097498, -0.030158, 0.179123, 0.070401, -0.126774, -0.271176, -0.147528, 0.345993, -0.228961, 0.069361, 0.12087, -0.422174, 0.013737, 0.370172, -0.570844, -0.091135]}
+</code></pre>
+<p>With a filter on an indexed field, applied inside Cassandra:</p>
+<pre><code class="language-opencypher">CALL vector.search('Document', 'embedding', $q, 3, {topic: 'query languages'}) YIELD node, score
+RETURN node.title AS title, round(score, 4) AS score
+</code></pre>
+<pre><code class="language-json">{&quot;q&quot;: [-0.097498, -0.030158, 0.179123, 0.070401, -0.126774, -0.271176, -0.147528, 0.345993, -0.228961, 0.069361, 0.12087, -0.422174, 0.013737, 0.370172, -0.570844, -0.091135]}
+</code></pre>
+<p>Vector search, then the graph: what the best matches cite:</p>
+<pre><code class="language-opencypher">CALL vector.search('Document', 'embedding', $q, 3) YIELD node, score
+MATCH (node)-[:CITES*1..2]-&gt;(src:Document)
+RETURN src.title AS cited, max(round(score, 4)) AS relevance ORDER BY relevance DESC, cited LIMIT 5
+</code></pre>
+<pre><code class="language-json">{&quot;q&quot;: [-0.097498, -0.030158, 0.179123, 0.070401, -0.126774, -0.271176, -0.147528, 0.345993, -0.228961, 0.069361, 0.12087, -0.422174, 0.013737, 0.370172, -0.570844, -0.091135]}
+</code></pre>
+<p>The graph, then similarity: the similarity functions score vectors already in hand (<code>vector.cosine</code>,
+<code>vector.dot_product</code>, <code>vector.euclidean</code>, each from 0 to 1):</p>
+<pre><code class="language-opencypher">MATCH (d:Document) WITH d ORDER BY d.year DESC LIMIT 1
+MATCH (d)-[:CITES*1..3]-&gt;(c:Document)
+RETURN DISTINCT c.title AS title, round(vector.cosine(c.embedding, $q), 4) AS cosine,
+       round(vector.dot_product(c.embedding, $q), 4) AS dot, round(vector.euclidean(c.embedding, $q), 4) AS euclidean
+ORDER BY cosine DESC LIMIT 5
+</code></pre>
+<pre><code class="language-json">{&quot;q&quot;: [-0.097498, -0.030158, 0.179123, 0.070401, -0.126774, -0.271176, -0.147528, 0.345993, -0.228961, 0.069361, 0.12087, -0.422174, 0.013737, 0.370172, -0.570844, -0.091135]}
+</code></pre>
+<p>Two papers compared with each other:</p>
+<pre><code class="language-opencypher">MATCH (a:Document {title: 'Leader leases, part 1'}), (b:Document)
+WHERE b &lt;&gt; a
+RETURN b.title, b.topic, round(vector.cosine(a.embedding, b.embedding), 4) AS similarity ORDER BY similarity DESC LIMIT 5
+</code></pre>
+<h2 id="explain">EXPLAIN</h2>
+<p>The plan, not the answer: where each pattern starts and how its start nodes are found. The console's
+<strong>Explain</strong> button adds the <code>EXPLAIN</code> for you.</p>
+<pre><code class="language-opencypher">EXPLAIN MATCH (m:Member {member_no: 1})-[:FRIENDS_WITH]-(f) RETURN f.name
+</code></pre>
+<p><code>EXPLAIN</code> of a write is a read, so the console accepts it:</p>
+<pre><code class="language-opencypher">EXPLAIN MATCH (m:Member {member_no: 1}) SET m.role = 'instructor' RETURN m
+</code></pre>
+<h2 id="writes">Writes</h2>
+<p><strong>Not in the console</strong>, which refuses writes: send these to <code>POST /opencypher</code> with a key that may
+write, for example</p>
+<pre><code class="language-bash">curl -s -X POST 127.0.0.1:5050/opencypher -H 'Content-Type: application/json' \
+     -d '{&quot;query&quot;: &quot;CREATE (p:Person {name: $name}) RETURN p&quot;, &quot;params&quot;: {&quot;name&quot;: &quot;Catalogue Ann&quot;}}'
+</code></pre>
+<p>They use the data model's <code>Person</code> / <code>KNOWS</code> types, with names starting <code>Catalogue</code>, and run in order;
+the last one removes everything they made. In the console, <strong>Explain</strong> shows each one's plan.</p>
+<p><code>CREATE</code>: a node, a path, and a relationship between nodes already there:</p>
+<pre><code class="language-opencypher">CREATE (p:Person {name: 'Catalogue Ann', address: '1 First St'}) RETURN p
+</code></pre>
+<pre><code class="language-opencypher">CREATE (b:Person {name: 'Catalogue Bob'})-[k:KNOWS {since: 2020}]-&gt;(c:Person {name: 'Catalogue Cat'}) RETURN b, k, c
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Person {name: 'Catalogue Ann'}), (b:Person {name: 'Catalogue Bob'})
+CREATE (a)-[k:KNOWS {since: 2015}]-&gt;(b) RETURN a, k, b
+</code></pre>
+<p><code>MERGE</code>: find or create, with <code>ON CREATE SET</code> and <code>ON MATCH SET</code> (run it twice to see both):</p>
+<pre><code class="language-opencypher">MERGE (p:Person {name: 'Catalogue Dan'})
+ON CREATE SET p.address = 'created'
+ON MATCH SET p.address = 'matched'
+RETURN p.name, p.address
+</code></pre>
+<pre><code class="language-opencypher">MATCH (a:Person {name: 'Catalogue Dan'}), (b:Person {name: 'Catalogue Ann'})
+MERGE (a)-[k:KNOWS]-&gt;(b)
+ON CREATE SET k.since = 2024
+RETURN k.since
+</code></pre>
+<p>Many at once, from a parameter:</p>
+<pre><code class="language-opencypher">UNWIND $people AS person
+MERGE (p:Person {name: person.name})
+SET p.address = person.address
+RETURN count(p) AS merged
+</code></pre>
+<pre><code class="language-json">{&quot;people&quot;: [{&quot;name&quot;: &quot;Catalogue Eve&quot;, &quot;address&quot;: &quot;5 Fifth St&quot;}, {&quot;name&quot;: &quot;Catalogue Fay&quot;, &quot;address&quot;: &quot;6 Sixth St&quot;}]}
+</code></pre>
+<p><code>SET</code>: one property, several properties from a map (<code>+=</code> adds, <code>=</code> replaces them all), and a label:</p>
+<pre><code class="language-opencypher">MATCH (p:Person {name: 'Catalogue Ann'}) SET p.address = '2 Second St' RETURN p
+</code></pre>
+<pre><code class="language-opencypher">MATCH (p:Person {name: 'Catalogue Bob'}) SET p += {address: '3 Third St'} RETURN properties(p)
+</code></pre>
+<pre><code class="language-opencypher">MATCH (p:Person {name: 'Catalogue Cat'}) SET p = {name: 'Catalogue Cat', address: '4 Fourth St'} RETURN properties(p)
+</code></pre>
+<pre><code class="language-opencypher">MATCH (p:Person {name: 'Catalogue Ann'}) SET p:Member RETURN labels(p)
+</code></pre>
+<p><code>REMOVE</code>: a property and a label:</p>
+<pre><code class="language-opencypher">MATCH (p:Person {name: 'Catalogue Ann'}) REMOVE p.address, p:Member RETURN p.address, labels(p)
+</code></pre>
+<p><code>DELETE</code> a relationship, then <code>DETACH DELETE</code> the nodes with their relationships:</p>
+<pre><code class="language-opencypher">MATCH (:Person {name: 'Catalogue Ann'})-[k:KNOWS]-&gt;(:Person {name: 'Catalogue Bob'}) DELETE k
+</code></pre>
+<pre><code class="language-opencypher">MATCH (p:Person) WHERE p.name STARTS WITH 'Catalogue' DETACH DELETE p
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../extending/" class="btn btn-neutral float-left" title="Extension points"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../development/" class="btn btn-neutral float-right" title="Development">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../extending/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../development/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/version-select.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/development/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Development - sitelabs-opencypher-graphtool</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+        <link href="../css/version-select.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Development";
+        var mkdocs_page_input_path = "development.md";
+        var mkdocs_page_url = "/sitelabs-opencypher-graphtool/latest/development/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> sitelabs-opencypher-graphtool
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Overview</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../overview/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../modules/">The modules</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Using it</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../extending/">Extension points</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../query-catalogue/">Query catalogue</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Development</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Development</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#the-tests">The tests</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#the-query-catalogue-and-its-copies">The query catalogue and its copies</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#releasing">Releasing</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#the-documentation-site">The documentation site</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">References</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">All documents</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">sitelabs-opencypher-graphtool</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Development</li>
+      <li class="breadcrumb-item active">Development</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/edit/main/docs/development.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="development">Development</h1>
+<blockquote>
+<p><strong>For:</strong> developers of the engine. <strong>You'll find:</strong> the tests, the query catalogue and its copies,
+releasing, and the documentation site.</p>
+</blockquote>
+<h2 id="the-tests">The tests</h2>
+<pre><code class="language-bash">python -m pytest                              # everything
+REQUIRE_CASSANDRA=1 python -m pytest          # fail instead of skipping without Cassandra (CI)
+</code></pre>
+<p>The Cassandra tests (<code>tests/integration/</code>) need Cassandra on <code>127.0.0.1:9042</code>, for example
+<code>docker run -d -p 127.0.0.1:9042:9042 cassandra:5.0.9</code>. For another port, set
+<code>CASSANDRA_PORT=19042</code>. CI (<code>.github/workflows/ci.yml</code>) runs them against a real Cassandra on every
+push and pull request.</p>
+<h2 id="the-query-catalogue-and-its-copies">The query catalogue and its copies</h2>
+<p><a href="../query-catalogue/">The query catalogue</a> has a query for each part of openCypher the engine
+supports, written against sitelabs-graph-database's sample graphs, to paste into the UI query
+console (sitelabs-graph-ui). <code>tests/test_query_catalogue.py</code> checks that every query parses, that
+the console's sections hold only reads, and that every parameter block is JSON.</p>
+<p>sitelabs-graph-database and sitelabs-partitioned-graph keep a copy in their docs, as it is at the
+tag they pin. Their tests fail if the copy is edited there, or left behind when the pin moves.
+Change it here, release a tag, move a project's pin, then refresh its copy:</p>
+<pre><code class="language-bash">python scripts/install_catalogue.py ../sitelabs-graph-database                 # writes its docs/query-catalogue.md
+python scripts/install_catalogue.py --check ../sitelabs-partitioned-graph      # is its copy current?
+</code></pre>
+<p>The copy is word for word, so <code>docs/query-catalogue.md</code> has no menu at the top, unlike the other
+pages (<code>NO_MENU</code> in <code>tools/docs.py</code>). It names none of the projects that copy it.</p>
+<h2 id="releasing">Releasing</h2>
+<ol>
+<li>Add the release's entry to <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/CHANGELOG.md">CHANGELOG.md</a> (move <strong>Unreleased</strong> under the new
+   version), and set <code>version</code> in <code>pyproject.toml</code> (<code>0.3.0</code>).</li>
+<li>Commit, then <code>git tag -a v0.3.0 -m "opencypher-graphtool 0.3.0"</code>, and push both. The tag
+   publishes the release's documentation site.</li>
+<li>Make a GitHub release for the tag, with the entry as its notes.</li>
+<li>In each project, pin the new tag, refresh its copy of the query catalogue, and change its links
+   to this site to the new release (<code>/sitelabs-opencypher-graphtool/0.3/</code>).</li>
+</ol>
+<h2 id="the-documentation-site">The documentation site</h2>
+<p><code>docs/</code> is published at https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/, one site per
+release, with <a href="https://github.com/jimporter/mike">mike</a>:</p>
+<ul>
+<li><code>/0.2/</code>, <code>/0.3/</code> ...: each release's site, for the engine a project pins. Projects link to
+  these.</li>
+<li><code>/latest/</code>: the newest. The site's root sends browsers there.</li>
+</ul>
+<p><code>.github/workflows/mkdocs.yml</code> publishes the release in <code>pyproject.toml</code> on every push to <code>main</code> that
+changes the docs, and on every tag. The menu at the top of each page and the sidebar come from
+<code>GROUPS</code> in <code>tools/docs.py</code>:</p>
+<pre><code class="language-bash">python tools/docs.py                     # write the menus and mkdocs.yml's nav
+python tools/docs.py --check             # change nothing; fail if a file is out of date
+pip install -r requirements-docs.txt
+mkdocs serve                             # the site at http://127.0.0.1:8000, as you edit
+mkdocs build --strict                    # what the workflow builds, failing on a broken link
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../query-catalogue/" class="btn btn-neutral float-left" title="Query catalogue"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href=".." class="btn btn-neutral float-right" title="All documents">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../query-catalogue/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href=".." style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/version-select.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

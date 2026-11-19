@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/development/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/extending/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/modules/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/overview/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+    <url>
+         <loc>https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/query-catalogue/</loc>
+         <lastmod>2026-11-19</lastmod>
+    </url>
+</urlset>

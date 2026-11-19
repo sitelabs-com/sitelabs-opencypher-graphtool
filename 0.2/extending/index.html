@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/latest/extending/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Extension points - sitelabs-opencypher-graphtool</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../stylesheets/extra.css" rel="stylesheet" />
+        <link href="../css/version-select.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Extension points";
+        var mkdocs_page_input_path = "extending.md";
+        var mkdocs_page_url = "/sitelabs-opencypher-graphtool/latest/extending/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> sitelabs-opencypher-graphtool
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Overview</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../overview/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../modules/">The modules</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Using it</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Extension points</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#property-stores">Property stores</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#the-runner-and-pattern-expansion">The runner and pattern expansion</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../query-catalogue/">Query catalogue</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Development</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../development/">Development</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">References</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="..">All documents</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">sitelabs-opencypher-graphtool</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Using it</li>
+      <li class="breadcrumb-item active">Extension points</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/edit/main/docs/extending.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="extension-points">Extension points</h1>
+<blockquote>
+<p><strong>For:</strong> developers building on the engine. <strong>You'll find:</strong> writing a property store of your
+own, and changing how the runner matches patterns.</p>
+</blockquote>
+<h2 id="property-stores">Property stores</h2>
+<p>The topology is in graph-tool; the properties of nodes and relationships are in a property store.
+The engine comes with two:</p>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Where the properties are</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InMemoryStore({})</code></td>
+<td>In memory, in a dict</td>
+</tr>
+<tr>
+<td><code>CassandraStore(session, "keyspace")</code></td>
+<td>Apache Cassandra, one table per type (the <code>cassandra</code> extra)</td>
+</tr>
+</tbody>
+</table>
+<p>For another, subclass <code>PropertyStore</code>, from <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/src/opencypher_graphtool/stores.py"><code>stores</code></a>. A
+store provides the columns of a type, fetching rows by id, writing them, and, optionally, index
+search. <code>InMemoryStore</code> (<a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/src/opencypher_graphtool/stores.py"><code>stores.py</code></a>) and <code>CassandraStore</code>
+(<a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/src/opencypher_graphtool/cassandra_store.py"><code>cassandra_store.py</code></a>) are the examples to follow.</p>
+<h2 id="the-runner-and-pattern-expansion">The runner and pattern expansion</h2>
+<p><code>OpenCypher.runner</code> is the class that runs a query: the <code>_Run</code> of
+<a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/src/opencypher_graphtool/clauses.py"><code>clauses</code></a>. A subclass can override its matching steps,
+defined in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/src/opencypher_graphtool/matching.py"><code>matching</code></a>:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>seed(labels, eqs)</code></td>
+<td>A pattern's start nodes: the candidates for an unbound node, by id, store index, label mask or scan</td>
+</tr>
+<tr>
+<td><code>filter_nodes(cands, labels, eqs)</code></td>
+<td>Keeps the candidates having all <code>labels</code> and every equality, batching store reads</td>
+</tr>
+<tr>
+<td><code>choose_start(part, bound, hints)</code></td>
+<td>Which node of a pattern part to start matching from</td>
+</tr>
+<tr>
+<td><code>neighbourhood(nodes, direction, types, labels)</code></td>
+<td>The hook before the matcher reads incident relationships</td>
+</tr>
+</tbody>
+</table>
+<p>The matcher calls <code>neighbourhood</code>:</p>
+<ul>
+<li>once per hop, with the whole frontier;</li>
+<li>once per level of a variable-length pattern;</li>
+<li>once per BFS layer of <code>shortestPath()</code>;</li>
+<li>in <code>degree()</code>.</li>
+</ul>
+<p>On a local graph it does nothing. sitelabs-partitioned-graph uses it to fetch each hop from the
+partitions that own the nodes.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../modules/" class="btn btn-neutral float-left" title="The modules"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../query-catalogue/" class="btn btn-neutral float-right" title="Query catalogue">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../modules/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../query-catalogue/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+      <script src="../js/version-select.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
