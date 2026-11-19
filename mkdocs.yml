@@ -25,6 +25,8 @@ extra_css:
   - stylesheets/extra.css
 hooks:
   - mkdocs_hooks.py # leaves each page's own menu block out of the site
+exclude_docs: | # compiled Python, from the hooks importing docs/sitedocs.py
+  __pycache__/
 plugins:
   - search
   - mike: # one site per release (0.2/, 0.3/ ...) and latest/: docs/development.md#the-documentation-site
