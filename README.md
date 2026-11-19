@@ -125,8 +125,14 @@ The Cassandra tests (`tests/integration/`) need Cassandra on `127.0.0.1:9042`, e
 
 ## Versions
 
-Releases are git tags (`v0.1.0`, ...). The projects using the engine pin a tag in their
+Releases are git tags (`v0.1.0`, ...), each with an entry in [CHANGELOG.md](CHANGELOG.md): what
+changed, and under **Upgrading** what to do. Before 1.0, a minor release (0.1 to 0.2) may change
+the public API; a patch release doesn't. The projects using the engine pin a tag in their
 requirements, and move to a new one deliberately.
+
+To release: add the entry (move **Unreleased** under the new version), set `version` in
+`pyproject.toml`, commit, `git tag -a v<version> -m "opencypher-graphtool <version>"`, push the tag,
+and make a GitHub release for it with the entry as its notes.
 
 **0.2.0** names graph elements nodes and relationships everywhere, as openCypher does, not
 vertices and edges (graph-tool's own API, underneath, keeps its names). It changes the API:
