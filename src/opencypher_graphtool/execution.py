@@ -21,7 +21,7 @@ from collections import Counter
 from graph_tool import Edge
 from graph_tool import Vertex
 from typing import Any
-from .errors import OpenCypherError, QueryTimeout
+from .errors import OpenCypherError, QueryTimeout, QueryTooLarge
 from .common import CORE_KEYS
 from .ast_nodes import _AGGS
 from .values import CPath, _SCALAR_FUNCS, _agg_values, _and, _arith, _cmp, _eq, _i64, _is_num, _or, _truth
@@ -80,6 +80,8 @@ class _Run:
         self._ticks = 0
         self.vector_evals = 0                        # vector.* calls in this query (scan guard)
         self.deadline = None if eng.timeout is None else time.monotonic() + eng.timeout
+        self.max_rows = getattr(eng, "max_rows", None)
+        self.rows_made = 0
 
     def tick(self) -> None:
         """Cooperative cancellation: hot loops call this; past cy.timeout it raises QueryTimeout
@@ -89,6 +91,13 @@ class _Run:
             self._ticks = 0
             if self.deadline is not None and time.monotonic() > self.deadline:
                 raise QueryTimeout(f"query exceeded the {self.eng.timeout}s timeout")
+
+    def made(self, n: int) -> None:
+        """A clause made n rows: past cy.max_rows in all, QueryTooLarge (a write is rolled back)."""
+        self.rows_made += n
+        if self.max_rows is not None and self.rows_made > self.max_rows:
+            raise QueryTooLarge(f"the query made more than {self.max_rows:,} rows (the row limit): "
+                                f"narrow it (a WHERE, a LIMIT), or count in parts")
 
     # ------------------------------------------------------------------ eval
     def ev(self, e, row, rows=None):
@@ -316,6 +325,11 @@ class _Run:
             extra = [self.ev(a, rows[0] if rows else row) for a in args[1:]] if len(args) > 1 else []
             return _agg_values(low, vals, distinct, extra)
         vals = [self.ev(a, row, rows) for a in args]
+        if low == "range" and self.max_rows is not None and len(vals) >= 2 and all(isinstance(v, int) for v in vals):
+            step = vals[2] if len(vals) > 2 else 1
+            n = max(0, (vals[1] - vals[0]) // step + 1) if step else 0
+            if n > self.max_rows:
+                raise QueryTooLarge(f"range() of {n:,} values: more than the row limit ({self.max_rows:,})")
         f = _GRAPH_FUNCS.get(low)
         try:
             if f is not None:

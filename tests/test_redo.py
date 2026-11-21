@@ -113,3 +113,39 @@ def test_timeout_stops_a_runaway_query_and_rolls_back_a_write():
         cy.run("MATCH p = (a:Person)-[:KNOWS*]->(:Person) CREATE (:City {name: 'x'})")
     assert cy.run("MATCH (n) RETURN count(n) AS c").value() == before
     cy.timeout = None
+
+
+def test_timeout_stops_a_query_that_only_unwinds():
+    """UNWIND makes rows without evaluating anything per row: it checks the deadline itself, so a
+    query of nested UNWINDs stops near its timeout, not when it is done (or out of memory)."""
+    import time
+
+    from opencypher_graphtool import QueryTimeout
+    cy, _ = make()
+    cy.timeout = 0.5
+    t0 = time.monotonic()
+    with pytest.raises(QueryTimeout):
+        cy.run("UNWIND range(1, 3000) AS a UNWIND range(1, 30000) AS b RETURN count(*)")
+    assert time.monotonic() - t0 < 5, "stopped long after its timeout"
+    cy.timeout = None
+
+
+def test_max_rows_stops_a_query_that_makes_too_many_rows_and_rolls_back_a_write():
+    from opencypher_graphtool import OpenCypherError, QueryTooLarge
+    cy, _ = make()
+    cy.run("UNWIND range(1, 50) AS i CREATE (:Person {name: toString(i)})")
+    cy.max_rows = 1000
+    assert cy.run("UNWIND range(1, 500) AS i RETURN count(i) AS c").value() == 500        # under it
+    assert cy.run("MATCH (p:Person) RETURN count(p) AS c").value() == 50
+    with pytest.raises(QueryTooLarge, match="more than 1,000 rows"):
+        cy.run("UNWIND range(1, 100) AS a UNWIND range(1, 100) AS b RETURN count(*)")    # 10,000 rows
+    with pytest.raises(QueryTooLarge, match="more than 1,000 rows"):
+        cy.run("MATCH (a:Person), (b:Person) RETURN count(*)")                           # 2,500 rows
+    with pytest.raises(QueryTooLarge, match=r"range\(\) of 1,000,000 values"):
+        cy.run("RETURN size(range(1, 1000000)) AS n")
+    with pytest.raises(QueryTooLarge):
+        cy.run("UNWIND range(1, 40) AS a UNWIND range(1, 40) AS b CREATE (:City {name: toString(a * 100 + b)})")
+    assert cy.run("MATCH (c:City) RETURN count(c) AS c").value() == 0                      # rolled back
+    assert issubclass(QueryTooLarge, OpenCypherError)
+    cy.max_rows = None
+    assert cy.run("UNWIND range(1, 100) AS a UNWIND range(1, 100) AS b RETURN count(*) AS c").value() == 10_000

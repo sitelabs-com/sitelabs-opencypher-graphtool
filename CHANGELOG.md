@@ -11,8 +11,13 @@ writes (what a stored graph or keyspace needs to keep working).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-20
+
 ### Added
 
+- **A row limit for a query,** `cy.max_rows` (off by default): the rows its clauses make (MATCH,
+  UNWIND and CALL) and `range()`'s lists; past it, `QueryTooLarge` (an `OpenCypherError`), and a
+  write is rolled back. A query's memory is mostly its rows, so this bounds it.
 - A documentation site, https://sitelabs-com.github.io/sitelabs-opencypher-graphtool/, one per
   release, as the other sitelabs projects have: `docs/` (overview, modules, extension points, the
   query catalogue, development), `mkdocs.yml`, and `.github/workflows/mkdocs.yml`, which publishes
@@ -22,6 +27,13 @@ writes (what a stored graph or keyspace needs to keep working).
 ### Changed
 
 - The docs name the graph database's repository as `sitelabs-graph-database`.
+
+### Fixed
+
+- **`cy.timeout` is checked inside UNWIND,** which makes rows without evaluating anything per row:
+  `UNWIND range(1, 3000) AS a UNWIND range(1, 30000) AS b RETURN count(*)` ran to the end (and out
+  of memory) whatever the timeout. UNWIND also hands its rows on in pieces of 512, not all of a
+  chunk's at once.
 
 ## [0.2.0] - 2026-11-15
 

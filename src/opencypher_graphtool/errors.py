@@ -48,6 +48,11 @@ class QueryTimeout(OpenCypherError, TimeoutError):
     """The query ran longer than cy.timeout (a write query is rolled back)."""
 
 
+class QueryTooLarge(OpenCypherError):
+    """The query made more rows than cy.max_rows (a write query is rolled back): its clauses'
+    rows, counted as MATCH, UNWIND and CALL make them, and range()'s lists."""
+
+
 class ConsistencyError(OpenCypherError):
     """A write failed AND the compensating rollback could not finish (e.g. the store went down
     mid-flush and is still down). graph-tool has been rolled back; some store rows may differ.

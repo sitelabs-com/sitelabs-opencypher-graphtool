@@ -48,7 +48,7 @@ In another project, with graph-tool in its environment:
 
 ```bash
 pip install -e ../sitelabs-opencypher-graphtool[cassandra]        # while developing both side by side
-pip install "opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.0"
+pip install "opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.1"
 ```
 
 The `cassandra` extra adds the Cassandra driver (for `CassandraStore`). Without it the engine runs
@@ -81,6 +81,28 @@ print(cy.run("MATCH (a:Person)-[k:KNOWS]->(b) RETURN a.name AS a, b.name AS b, k
 
 With Cassandra, use `CassandraStore(session, "keyspace")` instead of `InMemoryStore({})`. There are
 more examples in [`examples/`](../examples).
+
+## A query's limits
+
+Two limits keep one query from taking a server's time or memory. Both are off by default; an
+application that runs other people's queries sets them:
+
+```python
+cy.timeout = 30            # seconds: past it, QueryTimeout
+cy.max_rows = 10_000_000   # rows the query may make in all: past it, QueryTooLarge
+```
+
+* **`timeout`** is checked as the query goes, in every loop that can run long: matching and
+  expanding, UNWIND, aggregation, sorting, and every expression. A query stops close to its
+  timeout, not when it is done.
+* **`max_rows`** counts the rows the query's clauses make (MATCH, UNWIND and CALL), and refuses
+  `range()` lists longer than it. A query's memory is mostly its rows, so this bounds it:
+  `UNWIND range(1, 3000) AS a UNWIND range(1, 30000) AS b RETURN count(*)` stops at the limit
+  instead of filling the memory. A query that needs more rows can count in parts, or narrow its
+  MATCH.
+
+Both are `OpenCypherError`s, so an application refusing bad queries refuses these too, and a
+write that hits either is rolled back.
 
 ## Versions
 

@@ -160,6 +160,10 @@ Durability and limits (hooks for the host application):
   without a search, and re-loading a row updates it. Same transaction, journal, validation and
   rollback as a write query; `cy.bulk_once(request_id, fn)` makes one idempotent.
 * `cy.timeout = seconds`: hot loops check a deadline and raise QueryTimeout (writes roll back).
+  UNWIND, matching, aggregation, sorting and every expression check it.
+* `cy.max_rows = n`: the rows a query may make in all, as MATCH, UNWIND and CALL make them (and
+  range()'s lists); past it QueryTooLarge (writes roll back). A query's memory is mostly its rows,
+  so this bounds it. None (the default): no limit.
 * `cy.close()` drops the graph's registration so a replaced graph can be garbage collected.
 * CassandraStore(read_consistency=, write_consistency=, concurrency=) tune the driver calls.
 
@@ -217,7 +221,7 @@ stores._link()
 execution._link()
 clauses._link()
 
-from .errors import OpenCypherError, OpenCypherSyntaxError, LockError, LockUpgradeError, LockTimeout, ConsistencyError, QueryTimeout, ConstraintError, SchemaMigrationError
+from .errors import OpenCypherError, OpenCypherSyntaxError, LockError, LockUpgradeError, LockTimeout, ConsistencyError, QueryTimeout, QueryTooLarge, ConstraintError, SchemaMigrationError
 from .locking import GraphLock, lock_of
 from .ids import new_id, norm_id, stable_id
 from .parser import parse
@@ -229,4 +233,4 @@ from .cassandra_store import CassandraStore, REVERSE_ID_TABLE
 from .graph_functions import VECTOR_SIMILARITIES
 from .engine import opencypher, OpenCypher, VerifyReport
 
-__all__ = ['opencypher', 'OpenCypher', 'Result', 'Node', 'Rel', 'Path', 'OpenCypherError', 'OpenCypherSyntaxError', 'PropertyStore', 'InMemoryStore', 'CassandraStore', 'Schema', 'Registry', 'new_id', 'norm_id', 'stable_id', 'parse', 'GraphLock', 'LockError', 'LockUpgradeError', 'LockTimeout', 'lock_of', 'ConsistencyError', 'QueryTimeout', 'VerifyReport', 'REVERSE_ID_TABLE', 'Models', 'NodeModel', 'RelationshipModel', 'Field', 'MigrationPlan', 'ConstraintError', 'SchemaMigrationError', 'Vector', 'VectorField', 'VECTOR_SIMILARITIES']
+__all__ = ['opencypher', 'OpenCypher', 'Result', 'Node', 'Rel', 'Path', 'OpenCypherError', 'OpenCypherSyntaxError', 'PropertyStore', 'InMemoryStore', 'CassandraStore', 'Schema', 'Registry', 'new_id', 'norm_id', 'stable_id', 'parse', 'GraphLock', 'LockError', 'LockUpgradeError', 'LockTimeout', 'lock_of', 'ConsistencyError', 'QueryTimeout', 'QueryTooLarge', 'VerifyReport', 'REVERSE_ID_TABLE', 'Models', 'NodeModel', 'RelationshipModel', 'Field', 'MigrationPlan', 'ConstraintError', 'SchemaMigrationError', 'Vector', 'VectorField', 'VECTOR_SIMILARITIES']

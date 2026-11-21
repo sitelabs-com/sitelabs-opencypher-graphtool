@@ -147,6 +147,7 @@ class OpenCypher:
         # Needs atomic=True. Plain graph-tool property maps (no store) are not covered.
         self.on_commit: Callable[[list], None] | None = None
         self.timeout: float | None = None     # seconds per query; QueryTimeout past it
+        self.max_rows: int | None = None      # rows a query may make (MATCH, UNWIND, CALL); QueryTooLarge past it
         self.vector_scan_limit: int | None = VECTOR_SCAN_LIMIT   # vector.* calls per query; None: no limit
         self.vector_oversample: int = VECTOR_SEARCH_OVERSAMPLE    # vector.search candidates per result
         self.request_ids: collections.OrderedDict[str, dict] = collections.OrderedDict()   # see run_once

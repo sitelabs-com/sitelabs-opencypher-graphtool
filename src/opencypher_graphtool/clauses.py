@@ -93,6 +93,7 @@ class _Run(_RunBase):                                 # the runner, continued: c
                     continue
                 if c.optional:
                     matched.update(r[_HID + "i"] for r in sub)
+                self.made(len(sub))
                 yield [_clean(r) for r in sub]
             if c.optional:
                 miss = [chunk[i] for i in range(len(chunk)) if i not in matched]
@@ -107,9 +108,15 @@ class _Run(_RunBase):                                 # the runner, continued: c
                 if v is None:
                     continue
                 for x in (v if isinstance(v, (list, tuple)) else [v]):
+                    self.tick()                       # a long list makes rows without evaluating anything
                     nr = dict(r); nr[c.var] = x
                     out.append(nr)
+                    if len(out) >= 512:               # handed on in pieces: never one list of them all
+                        self.made(len(out))
+                        yield out
+                        out = []
             if out:
+                self.made(len(out))
                 yield out
 
     # -- WITH / RETURN ---------------------------------------------------------- #
@@ -441,6 +448,7 @@ class _Run(_RunBase):                                 # the runner, continued: c
                     if c.where is None or self.ev(c.where, nr) is True:
                         out.append(nr)
             if out:
+                self.made(len(out))
                 yield out
 
     # -- one query part ----------------------------------------------------------------------- #
