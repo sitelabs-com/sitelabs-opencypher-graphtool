@@ -51,6 +51,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#a-first-query">A first query</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#a-querys-limits">A query's limits</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#versions">Versions</a>
     </li>
     </ul>
@@ -159,7 +161,7 @@ python -m pytest                             # the tests (Cassandra ones skip wi
 </code></pre>
 <p>In another project, with graph-tool in its environment:</p>
 <pre><code class="language-bash">pip install -e ../sitelabs-opencypher-graphtool[cassandra]        # while developing both side by side
-pip install &quot;opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.0&quot;
+pip install &quot;opencypher-graphtool[cassandra] @ git+https://github.com/sitelabs-com/sitelabs-opencypher-graphtool.git@v0.2.1&quot;
 </code></pre>
 <p>The <code>cassandra</code> extra adds the Cassandra driver (for <code>CassandraStore</code>). Without it the engine runs
 on <code>InMemoryStore</code> or a store of your own.</p>
@@ -187,6 +189,24 @@ print(cy.run(&quot;MATCH (a:Person)-[k:KNOWS]-&gt;(b) RETURN a.name AS a, b.name
 </code></pre>
 <p>With Cassandra, use <code>CassandraStore(session, "keyspace")</code> instead of <code>InMemoryStore({})</code>. There are
 more examples in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/tree/main/examples"><code>examples/</code></a>.</p>
+<h2 id="a-querys-limits">A query's limits</h2>
+<p>Two limits keep one query from taking a server's time or memory. Both are off by default; an
+application that runs other people's queries sets them:</p>
+<pre><code class="language-python">cy.timeout = 30            # seconds: past it, QueryTimeout
+cy.max_rows = 10_000_000   # rows the query may make in all: past it, QueryTooLarge
+</code></pre>
+<ul>
+<li><strong><code>timeout</code></strong> is checked as the query goes, in every loop that can run long: matching and
+  expanding, UNWIND, aggregation, sorting, and every expression. A query stops close to its
+  timeout, not when it is done.</li>
+<li><strong><code>max_rows</code></strong> counts the rows the query's clauses make (MATCH, UNWIND and CALL), and refuses
+  <code>range()</code> lists longer than it. A query's memory is mostly its rows, so this bounds it:
+  <code>UNWIND range(1, 3000) AS a UNWIND range(1, 30000) AS b RETURN count(*)</code> stops at the limit
+  instead of filling the memory. A query that needs more rows can count in parts, or narrow its
+  MATCH.</li>
+</ul>
+<p>Both are <code>OpenCypherError</code>s, so an application refusing bad queries refuses these too, and a
+write that hits either is rolled back.</p>
 <h2 id="versions">Versions</h2>
 <p>Releases are git tags (<code>v0.1.0</code>, ...), each with an entry in <a href="https://github.com/sitelabs-com/sitelabs-opencypher-graphtool/blob/main/CHANGELOG.md">CHANGELOG.md</a>: what
 changed, and under <strong>Upgrading</strong> what to do. Before 1.0, a minor release (0.1 to 0.2) may change
